@@ -1,0 +1,295 @@
+#!/usr/bin/env python3
+"""AD FINEM Stream Kit - installer for Linux.
+
+Started by install-linux.sh. Safe to run again: your settings.js is kept.
+  1. checks for OBS Studio (native, Flatpak or Snap)
+  2. copies the kit to ~/Documents/AD FINEM Stream Kit
+  3. adds the "AD FINEM" scene collection to OBS, using Linux capture sources
+  4. adds an "AD FINEM - Customize overlays" launcher to your app menu
+"""
+import datetime
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ORANGE, GREEN, YELLOW, RED, DIM, END = "\033[38;5;208m", "\033[32m", "\033[33m", "\033[31m", "\033[90m", "\033[0m"
+if not sys.stdout.isatty():
+    ORANGE = GREEN = YELLOW = RED = DIM = END = ""
+
+# Where OBS keeps its settings: native, Flatpak, Snap.
+OBS_CONFIGS = [
+    os.path.join((os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config")), "obs-studio"),
+    os.path.join(HOME, ".var", "app", "com.obsproject.Studio", "config", "obs-studio"),
+    os.path.join(HOME, "snap", "obs-studio", "current", ".config", "obs-studio"),
+]
+
+
+def say(text, color=""):
+    print(f"{color}{text}{END}")
+
+
+def step(n, text):
+    print(f"\n{ORANGE}[{n}] {text}{END}")
+
+
+def ask(question):
+    if not sys.stdin.isatty():
+        return False
+    try:
+        return input(f"    {question} (y/n) ").strip().lower().startswith(("y", "j"))
+    except EOFError:
+        return False
+
+
+def documents_dir():
+    try:
+        d = subprocess.run(["xdg-user-dir", "DOCUMENTS"], capture_output=True, text=True, timeout=5).stdout.strip()
+        if d and d != HOME and os.path.isdir(d):
+            return d
+    except Exception:
+        pass
+    d = os.path.join(HOME, "Documents")
+    return d if os.path.isdir(d) else HOME
+
+
+def have(cmd):
+    return shutil.which(cmd) is not None
+
+
+def flatpak_has_obs():
+    if not have("flatpak"):
+        return False
+    r = subprocess.run(["flatpak", "info", "com.obsproject.Studio"], capture_output=True)
+    return r.returncode == 0
+
+
+def obs_running():
+    if not have("pgrep"):
+        return False
+    return subprocess.run(["pgrep", "-x", "obs"], capture_output=True).returncode == 0
+
+
+# ------------------------------------------------------------------ Linux sources
+def linux_session():
+    return "wayland" if (os.environ.get("XDG_SESSION_TYPE") == "wayland" or os.environ.get("WAYLAND_DISPLAY")) else "x11"
+
+
+def to_linux(collection, kit):
+    """Turn the Windows template into a Linux scene collection."""
+    text = json.dumps(collection)
+    collection = json.loads(text.replace("__KIT__", kit.replace("\\", "/").replace('"', '\\"')))
+    wayland = linux_session() == "wayland"
+    for s in collection["sources"]:
+        if s["id"] == "game_capture":
+            if wayland:      # Wayland: OBS asks you to pick the WoW window the first time
+                s["id"] = s["versioned_id"] = "pipewire-screen-capture-source"
+                s["settings"] = {"ShowCursor": True}
+            else:            # X11: window capture, pick WoW in the source's properties
+                s["id"] = s["versioned_id"] = "xcomposite_input"
+                s["settings"] = {"capture_window": "", "show_cursor": True}
+        elif s["id"] == "dshow_input":
+            s["id"] = s["versioned_id"] = "v4l2_input"
+            s["settings"] = {}
+    for key, sid in (("DesktopAudioDevice1", "pulse_output_capture"), ("AuxAudioDevice1", "pulse_input_capture")):
+        if key in collection:
+            collection[key]["id"] = collection[key]["versioned_id"] = sid
+            collection[key]["settings"] = {"device_id": "default"}
+    return collection
+
+
+USER_IDS = {"dshow_input", "game_capture", "window_capture", "monitor_capture", "wasapi_input_capture", "wasapi_output_capture",
+            "wasapi_process_output_capture", "v4l2_input", "xcomposite_input", "pipewire-screen-capture-source",
+            "pipewire-desktop-capture-source", "pipewire-window-capture-source", "pipewire-camera-source",
+            "pulse_input_capture", "pulse_output_capture", "av_capture_input", "screen_capture"}
+
+
+def merge(new, old):
+    """Update = new kit scenes, but keep the camera/game/audio the streamer picked, where they put them,
+    their own scenes/sources, their hotkeys for the kit's script and their other scripts."""
+    old_by = {s["name"]: s for s in old.get("sources", [])}
+    for s in new["sources"]:
+        o = old_by.get(s["name"])
+        if o and o.get("id") == s["id"] and o["id"] in USER_IDS:
+            for k in ("settings", "volume", "muted", "filters", "monitoring_type", "mixers", "sync", "balance"):
+                if k in o:
+                    s[k] = o[k]
+    for k, v in old.items():
+        if k.startswith(("DesktopAudioDevice", "AuxAudioDevice")):
+            new[k] = v
+    old_scenes = {s["name"]: s for s in old.get("sources", []) if s.get("id") == "scene"}
+    for s in new["sources"]:
+        if s["id"] != "scene" or s["name"] not in old_scenes:
+            continue
+        old_items = {i["name"]: i for i in old_scenes[s["name"]]["settings"].get("items", [])}
+        for it in s["settings"].get("items", []):
+            src = old_by.get(it["name"])
+            if src and src.get("id") in USER_IDS and it["name"] in old_items:
+                for k in ("pos", "scale", "rot", "bounds", "bounds_type", "bounds_align", "align",
+                          "crop_left", "crop_top", "crop_right", "crop_bottom", "visible"):
+                    if k in old_items[it["name"]]:
+                        it[k] = old_items[it["name"]][k]
+    names = {s["name"] for s in new["sources"]}
+    extra = [s for s in old.get("sources", []) if s["name"] not in names and not s["name"].startswith("AF ")]
+    new["sources"] += extra
+    order = {o["name"] for o in new["scene_order"]}
+    new["scene_order"] += [o for o in old.get("scene_order", []) if o["name"] not in order and any(e["name"] == o["name"] and e["id"] == "scene" for e in extra)]
+    gnames = {g["name"] for g in new.get("groups", [])}
+    new["groups"] = new.get("groups", []) + [g for g in old.get("groups", []) if g["name"] not in gnames]
+    old_mods = old.get("modules", {}) or {}
+    old_scripts = old_mods.get("scripts-tool", []) or []
+    mine = next((x for x in old_scripts if x.get("path", "").endswith("adfinem-hotkeys.lua")), None)
+    for ns in new.get("modules", {}).get("scripts-tool", []):
+        if mine and ns["path"].endswith("adfinem-hotkeys.lua"):
+            ns["settings"] = mine.get("settings", {})
+    new.setdefault("modules", {})["scripts-tool"] = new["modules"].get("scripts-tool", []) + \
+        [x for x in old_scripts if not x.get("path", "").endswith("adfinem-hotkeys.lua")]
+    for k, v in old_mods.items():
+        new["modules"].setdefault(k, v)
+    return new
+
+
+def main():
+    docs = documents_dir()
+    dest = os.path.join(docs, "AD FINEM Stream Kit")
+    say(f"\n  {ORANGE}==============================================={END}")
+    say("     AD FINEM  -  STREAM KIT INSTALLER (Linux)")
+    say(f"  {ORANGE}==============================================={END}")
+    say(f"  Installs to: {dest}")
+
+    # ---------------------------------------------------------------- 1. OBS
+    step(1, "Checking for OBS Studio")
+    native, flat = have("obs"), flatpak_has_obs()
+    snap = os.path.isdir(os.path.join(HOME, "snap", "obs-studio"))
+    if native or flat or snap:
+        say("    Found: " + ", ".join(n for n, ok in (("OBS", native), ("OBS (Flatpak)", flat), ("OBS (Snap)", snap)) if ok), GREEN)
+    else:
+        say("    OBS Studio was not found.", YELLOW)
+        if have("flatpak") and ask("Install OBS Studio from Flathub now?"):
+            subprocess.run(["flatpak", "install", "-y", "--user", "flathub", "com.obsproject.Studio"])
+            flat = flatpak_has_obs()
+        if not flat:
+            say("    Install OBS first (Flathub: com.obsproject.Studio, or your package manager),", YELLOW)
+            say("    then run install-linux.sh again. Continuing so the files are ready.", YELLOW)
+
+    # ---------------------------------------------------------------- 2. close OBS
+    step(2, "Making sure OBS is closed")
+    if obs_running():
+        say("    OBS is open. Please close it - waiting...", YELLOW)
+        while obs_running():
+            time.sleep(1)
+    say("    OK", GREEN)
+
+    # ---------------------------------------------------------------- 3. copy the kit
+    step(3, "Copying the kit")
+    if os.path.realpath(SRC) == os.path.realpath(dest):
+        say("    Already running from the installed folder - nothing to copy.", GREEN)
+    else:
+        keep = os.path.exists(os.path.join(dest, "settings.js"))
+        os.makedirs(dest, exist_ok=True)
+        for root, dirs, files in os.walk(SRC):
+            dirs[:] = [d for d in dirs if d != "backup"]
+            rel = os.path.relpath(root, SRC)
+            os.makedirs(os.path.join(dest, rel), exist_ok=True)
+            for f in files:
+                if rel == "." and f == "settings.js" and keep:
+                    continue
+                if rel == "_system" and f == "twitch_auth.js":
+                    continue
+                shutil.copy2(os.path.join(root, f), os.path.join(dest, rel, f))
+        for sh in ("install-linux.sh", "uninstall-linux.sh", "customize-overlays-linux.sh"):
+            p = os.path.join(dest, sh)
+            if os.path.exists(p):
+                os.chmod(p, 0o755)
+        say("    Updated the kit. Your own settings.js was kept." if keep else "    Copied.", GREEN)
+
+    # ---------------------------------------------------------------- 4. OBS scene collection
+    step(4, 'Adding the "AD FINEM" scene collection to OBS')
+    with open(os.path.join(dest, "_system", "obs_template.json"), encoding="utf-8") as f:
+        collection = to_linux(json.load(f), dest)
+    targets = [c for c in OBS_CONFIGS if os.path.isdir(c)]
+    if not targets:   # OBS never started yet: use the right place for how it's installed
+        if flat and not native:
+            targets = [OBS_CONFIGS[1]]
+        elif snap and not native:
+            targets = [OBS_CONFIGS[2]]
+        else:
+            targets = [OBS_CONFIGS[0]]
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    for cfg in targets:
+        scenes = os.path.join(cfg, "basic", "scenes")
+        os.makedirs(scenes, exist_ok=True)
+        target = os.path.join(scenes, "AD_FINEM.json")
+        out = collection
+        if os.path.exists(target):
+            bk = os.path.join(dest, "_system", "backup")
+            os.makedirs(bk, exist_ok=True)
+            shutil.copy2(target, os.path.join(bk, f"AD_FINEM_{stamp}.json"))
+            say("    Replaced an earlier AD FINEM collection (backup in _system/backup).", DIM)
+            try:
+                with open(target, encoding="utf-8-sig") as f:
+                    out = merge(json.loads(json.dumps(collection)), json.load(f))
+                say("    Kept your webcam, game capture, audio devices and your own scenes.", GREEN)
+            except Exception as e:
+                say(f"    (Could not keep your old OBS picks: {e} - set webcam/game again.)", YELLOW)
+                out = collection
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(out, f, indent=2, ensure_ascii=False)
+        say(f"    Written: {target}", GREEN)
+    say(f"    Game capture: {'PipeWire (Wayland)' if linux_session() == 'wayland' else 'Window capture (X11)'}", DIM)
+
+    missing = []
+    for s in collection["sources"]:
+        p = s.get("settings", {}).get("local_file")
+        if p and not os.path.exists(p):
+            missing.append(p)
+    for t in collection.get("transitions", []):
+        p = t.get("settings", {}).get("path")
+        if p and not os.path.exists(p):
+            missing.append(p)
+    if missing:
+        say("    Note - these files are missing (those scenes will be empty until you add them):", YELLOW)
+        for m in missing:
+            say(f"      {m}", YELLOW)
+
+    # ---------------------------------------------------------------- 5. launcher
+    step(5, "Adding the editor to your app menu")
+    try:
+        apps = os.path.join((os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share")), "applications")
+        os.makedirs(apps, exist_ok=True)
+        icon = os.path.join(dest, "overlays", "img", "adfinem-emblem-gradient.svg")
+        entry = (
+            "[Desktop Entry]\nType=Application\nName=AD FINEM - Customize overlays\n"
+            "Comment=Change the text on your AD FINEM stream overlays\n"
+            f'Exec=python3 "{os.path.join(dest, "_system", "editor.py")}"\n'
+            f"Icon={icon}\nTerminal=false\nCategories=AudioVideo;\n"
+        )
+        path = os.path.join(apps, "adfinem-customize-overlays.desktop")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(entry)
+        os.chmod(path, 0o755)
+        say('    App menu: "AD FINEM - Customize overlays"', GREEN)
+    except Exception as e:
+        say(f"    Couldn't add the launcher ({e}). Use customize-overlays-linux.sh in the kit folder.", YELLOW)
+
+    say(f"\n  {GREEN}Done!{END}")
+    say("  1. Open OBS > Scene Collection > AD FINEM")
+    say('  2. In "AF - In-Game": open "Game Capture - World of Warcraft" and pick the WoW window,')
+    say('     and open "Webcam (pick your camera)" and pick your camera')
+    say('  3. Change your text and set up alerts: "AD FINEM - Customize overlays" in your app menu')
+    say("     (or run customize-overlays-linux.sh in the kit folder)\n")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()
+        sys.exit(1)
+    except Exception as e:
+        say(f"\n  Something went wrong: {e}", RED)
+        sys.exit(1)

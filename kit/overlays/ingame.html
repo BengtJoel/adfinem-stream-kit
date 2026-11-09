@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>AD FINEM - In-game overlay</title>
+<link rel="stylesheet" href="af.css">
+<script src="../settings.js"></script>
+<script src="settings-loader.js"></script>
+<script>
+/* Settings come from settings.js (edit with "Customize overlays.html") */
+(function () {
+  const I = AF_GET("ingame") || {};
+  const on = v => v !== false;
+  window.AF = {
+    name: AF_ESC(I.streamerName || ""),
+    cam: { x: +I.camX || 32, y: +I.camY || 805, w: +I.camWidth || 432, h: +I.camHeight || 243 },
+    showCam: on(I.showCamFrame),
+    progress: on(I.showProgress) ? { label: AF_ESC(I.fallbackLabel || "MYTHIC"), value: AF_ESC(I.fallbackValue || ""), raid: AF_ESC(I.fallbackRaid || "") } : null,
+    progressPos: I.progressPosition || "top-center",
+    raiderio: { enabled: on(I.raiderio), region: I.region || "eu", realm: I.realm || "dentarg", guild: I.guild || "Ad Finem",
+                raid: I.raid || "auto", raidName: "", rank: I.rank === "none" ? null : (I.rank || "realm"), refreshMinutes: 10 },
+  };
+})();
+</script>
+<style>
+  .camframe { position: absolute; }
+  .camframe .edge {
+    position: absolute; inset: -2px; border: 1px solid rgba(203,213,235,.16); border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(10,12,17,.7), 0 18px 40px -16px rgba(0,0,0,.9);
+  }
+  .camframe .c { position: absolute; width: 26px; height: 26px; border-color: var(--coral); border-style: solid; filter: drop-shadow(0 0 6px rgba(232,120,90,.7)); }
+  .c.tl { left: -6px; top: -6px; border-width: 2px 0 0 2px; }
+  .c.tr { right: -6px; top: -6px; border-width: 2px 2px 0 0; }
+  .c.bl { left: -6px; bottom: -6px; border-width: 0 0 2px 2px; }
+  .c.br { right: -6px; bottom: -6px; border-width: 0 2px 2px 0; }
+  .camframe .chev {                 /* brand V notch on the top edge */
+    position: absolute; top: -6px; left: 50%; width: 38px; height: 12px; transform: translateX(-50%);
+    background: var(--ember-grad); clip-path: polygon(0 0, 16% 0, 50% 70%, 84% 0, 100% 0, 50% 100%);
+    filter: drop-shadow(0 0 6px rgba(238,154,91,.85));
+  }
+  .camframe .tag { position: absolute; left: 0; top: -54px; padding: 10px 16px; font-size: 16px; }
+  .camframe .tag img { width: 22px; height: 22px; }
+  .camframe .tag .nm { color: var(--text); }
+  .progress { position: absolute; top: 24px; padding: 10px 18px 10px 12px; font-size: 16px; gap: 14px; }
+  .progress.top-left { left: 28px; } .progress.top-right { right: 28px; }
+  .progress.top-center { left: 50%; transform: translateX(-50%); }
+  .progress.top-center.fade { animation-name: fade-up-c; }
+  @keyframes fade-up-c { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .progress img { width: 30px; height: 30px; }
+  .progress .sep { width: 1px; height: 18px; background: rgba(203,213,235,.18); }
+  .progress .raid { color: var(--muted); letter-spacing: .16em; }
+  .progress .rank { color: var(--text); letter-spacing: .14em; }
+  .progress .rank b { color: var(--amber); font-weight: 600; }
+  .progress.bump { animation: bump 2.4s ease-out; }
+  @keyframes bump {
+    0%   { box-shadow: 0 0 0 1px rgba(240,176,92,.9), 0 0 40px 6px rgba(238,154,91,.75); }
+    100% { box-shadow: inset 0 1px 0 rgba(203,213,235,.06), 0 10px 30px -14px rgba(0,0,0,.9); }
+  }
+</style>
+</head><body>
+<script>
+(function () {
+  const C = window.AF;
+  const html = [];
+  if (C.progress) html.push(`
+    <div class="chip progress fade ${C.progressPos || "top-center"}" style="--d:.2s">
+      <img src="img/adfinem-emblem-gradient.svg" alt="">
+      <span class="coral" data-k="label">${C.progress.label}</span><span class="accent" data-k="value">${C.progress.value}</span>
+      <span class="sep"></span><span class="raid" data-k="raid">${C.progress.raid}</span>
+      <span class="sep" data-k="ranksep" hidden></span><span class="rank" data-k="rank" hidden></span>
+    </div>`);
+  if (C.showCam) {
+    const { x, y, w, h } = C.cam;
+    html.push(`
+    <div class="camframe fade" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;--d:.35s">
+      <div class="edge"></div><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i><i class="chev"></i>
+      <div class="chip tag"><img src="img/adfinem-emblem-gradient.svg" alt=""><span class="coral">AD FINEM</span>${C.name ? `<span class="nm">${C.name}</span>` : ""}</div>
+    </div>`);
+  }
+  document.body.insertAdjacentHTML("beforeend", html.join(""));
+
+  /* ---------- raider.io live progression ---------- */
+  const R = C.raiderio, pill = document.querySelector(".progress");
+  if (!R || !R.enabled || !pill) return;
+  const $ = k => pill.querySelector(`[data-k="${k}"]`);
+  const DIFF = { M: "MYTHIC", H: "HEROIC", N: "NORMAL" };
+  const prettify = slug => slug.replace(/-/g, " ").toUpperCase();
+  const url = "https://raider.io/api/v1/guilds/profile?region=" + encodeURIComponent(R.region) +
+    "&realm=" + encodeURIComponent(R.realm) + "&name=" + encodeURIComponent(R.guild) +
+    "&fields=raid_progression,raid_rankings";
+
+  function pickRaid(prog) {
+    if (R.raid && R.raid !== "auto" && prog[R.raid]) return R.raid;
+    // auto: the largest raid that isn't a combined "tier-" entry
+    return Object.keys(prog).filter(k => !k.startsWith("tier-"))
+      .sort((a, b) => prog[b].total_bosses - prog[a].total_bosses)[0];
+  }
+
+  function render(d) {
+    const changed = $("value").textContent !== d.value || $("label").textContent !== d.label;
+    $("label").textContent = d.label; $("value").textContent = d.value; $("raid").textContent = d.raid;
+    $("rank").hidden = $("ranksep").hidden = !d.rank;
+    if (d.rank) $("rank").innerHTML = `<b>#${d.rank.toLocaleString("en-US")}</b> ${R.rank.toUpperCase()}`;
+    if (changed && render.ready) { pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
+    render.ready = true;
+  }
+
+  async function update() {
+    try {
+      const j = await (await fetch(url, { cache: "no-store" })).json();
+      const slug = pickRaid(j.raid_progression || {});
+      if (!slug) throw new Error("no raid data");
+      const p = j.raid_progression[slug];
+      const letter = p.summary.trim().slice(-1);
+      const killed = { M: p.mythic_bosses_killed, H: p.heroic_bosses_killed, N: p.normal_bosses_killed }[letter];
+      const diffKey = (DIFF[letter] || "").toLowerCase();
+      const rk = R.rank && j.raid_rankings && j.raid_rankings[slug] && j.raid_rankings[slug][diffKey];
+      const d = { label: DIFF[letter] || letter, value: `${killed}/${p.total_bosses}`,
+                  raid: R.raidName || prettify(slug), rank: rk ? rk[R.rank] || 0 : 0 };
+      render(d);
+      try { localStorage.setItem("af-rio", JSON.stringify(d)); } catch (e) {}
+    } catch (e) {
+      console.warn("[AF] raider.io unavailable, keeping last value:", e);
+    }
+  }
+
+  try { const cached = JSON.parse(localStorage.getItem("af-rio") || "null"); if (cached) render(cached); } catch (e) {}
+  update();
+  setInterval(update, Math.max(2, R.refreshMinutes || 10) * 60000);
+})();
+</script>
+</body></html>

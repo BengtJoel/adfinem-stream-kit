@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>AD FINEM - Customize overlays</title>
+<link rel="stylesheet" href="../overlays/af.css">
+<script src="../settings.js"></script>
+<script src="../overlays/twitch-app.js"></script>
+<script src="../_system/twitch_auth.js" onerror="window.AF_TWITCH_AUTH = null"></script>
+<style>
+  html, body { width: auto; height: auto; overflow: auto; background: #0A0C11; }
+  body { display: grid; grid-template-columns: 440px 1fr; min-height: 100vh; font: 400 15px/1.45 "Onest", system-ui, sans-serif; }
+  aside { padding: 28px 26px 120px; border-right: 1px solid rgba(203,213,235,.08); background: #0D1016; overflow-y: auto; max-height: 100vh; }
+  main { padding: 28px; display: flex; flex-direction: column; gap: 16px; }
+  h1 { font: 800 22px/1 "Archivo", sans-serif; letter-spacing: .22em; margin-bottom: 6px; }
+  .lead { color: var(--muted); margin-bottom: 20px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .tabs button { font: 600 12px/1 "Archivo", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+    background: #141821; border: 1px solid rgba(203,213,235,.08); border-radius: 6px; padding: 10px 12px; cursor: pointer; }
+  .tabs button.on { color: #0A0C11; background: linear-gradient(135deg, var(--coral), var(--amber)); border-color: transparent; }
+  fieldset { display: none; border: 0; }
+  fieldset.on { display: block; }
+  label { display: block; margin: 14px 0 6px; font: 600 12px/1 "Archivo", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--coral); }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 10px 12px; color: var(--text); background: #11141C; font: 400 15px "Onest", sans-serif;
+    border: 1px solid rgba(203,213,235,.12); border-radius: 6px; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(232,120,90,.18); }
+  textarea { min-height: 70px; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .check { display: flex; align-items: center; gap: 10px; margin-top: 16px; color: var(--text); font-size: 15px; letter-spacing: 0; text-transform: none; font-family: "Onest"; }
+  .check input { width: 18px; height: 18px; accent-color: var(--coral); }
+  .bar { position: fixed; left: 0; bottom: 0; width: 440px; padding: 16px 26px; background: rgba(13,16,22,.96);
+    border-top: 1px solid rgba(203,213,235,.08); display: flex; gap: 10px; }
+  .btn { flex: 1; padding: 14px; border-radius: 8px; border: 1px solid rgba(203,213,235,.14); background: #141821; color: var(--text);
+    font: 700 13px/1 "Archivo", sans-serif; letter-spacing: .16em; text-transform: uppercase; cursor: pointer; }
+  .btn.primary { color: #0A0C11; border: 0; background: linear-gradient(135deg, var(--coral), var(--amber)); box-shadow: 0 8px 24px -10px rgba(238,154,91,.8); }
+  .stage { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; border: 1px solid rgba(203,213,235,.1);
+    background: #000 url("../overlays/img/preview_bg.jpg") center/cover; }
+  .stage.game { background: radial-gradient(ellipse at 30% 40%, #3a4a3a, #1d241f 60%, #0e120f); }
+  .stage iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; background: transparent; }
+  .pv-title { font: 600 12px/1 "Archivo", sans-serif; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; }
+  .toast { position: fixed; right: 24px; bottom: 24px; max-width: 460px; padding: 16px 18px; border-radius: 8px; background: #141821;
+    border-left: 3px solid var(--coral); box-shadow: 0 20px 40px -20px #000; opacity: 0; transform: translateY(10px); transition: .3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: none; }
+  .warn { display: none; margin: 0 0 18px; padding: 14px 16px; border-radius: 8px; background: rgba(232,120,90,.12);
+    border: 1px solid rgba(232,120,90,.45); font-size: 14px; }
+  .warn.on { display: block; }
+  .twbox { margin-top: 12px; padding: 14px 16px; border-radius: 8px; background: #11141C; border: 1px solid rgba(203,213,235,.10); }
+  .twbox .code { font: 800 34px/1 "Archivo", sans-serif; letter-spacing: .18em; color: var(--amber); margin: 10px 0; }
+  .twbox .who { color: var(--text); } .twbox .who b { color: var(--amber); }
+  .twbox .btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .sbtn { padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(203,213,235,.14); background: #141821; color: var(--text);
+    font: 700 12px/1 "Archivo", sans-serif; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; text-decoration: none; }
+  .sbtn.primary { color: #0A0C11; border: 0; background: linear-gradient(135deg, var(--coral), var(--amber)); }
+  .tests { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  [data-show] { display: none; } [data-show].on { display: block; }
+  .spitem { margin-top: 12px; padding: 12px 14px 14px; border-radius: 8px; background: #11141C; border: 1px solid rgba(203,213,235,.10); }
+  .spitem.off { opacity: .55; }
+  .spitem .top { display: flex; align-items: center; gap: 8px; }
+  .spitem .top b { flex: 1; font: 700 13px/1 "Archivo", sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+  .spitem .ic { width: 30px; height: 30px; padding: 0; border-radius: 6px; border: 1px solid rgba(203,213,235,.14); background: #141821; color: var(--text); cursor: pointer; }
+  .spitem label { margin-top: 10px; }
+  .logorow { display: flex; gap: 10px; align-items: center; }
+  .logorow .thumb { width: 64px; height: 44px; flex: none; border-radius: 6px; background: #0A0C11 center/contain no-repeat; border: 1px solid rgba(203,213,235,.10); }
+  .logorow input[type=text] { flex: 1; }
+  .kitver { position: fixed; left: 26px; bottom: 78px; font-size: 11px; color: rgba(152,160,176,.6); letter-spacing: .08em; }
+  .savedpath { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
+</style></head>
+<body>
+<aside>
+  <h1>AD FINEM</h1>
+  <p class="lead">Change the text on your stream overlays. The preview updates as you type.
+     Click <b>Save</b> when you're done - OBS updates by itself within a few seconds.</p>
+  <div class="warn" id="warn"><b>Open the editor with "Customize overlays.bat"</b> (Linux: customize-overlays-linux.sh) in the kit folder, or the
+    <b>AD FINEM - Customize overlays</b> shortcut on your desktop. Then Save goes straight to the right place.
+    Opened like this, Save can only download the file.</div>
+  <div class="warn" id="upd" style="border-color:rgba(240,176,92,.55);background:rgba(240,176,92,.10)"></div>
+  <div class="tabs" id="tabs"></div>
+
+  <fieldset data-tab="general" data-preview="starting">
+    <label>Links / socials (one per line)</label><textarea data-k="general.socials" data-list></textarea>
+    <div class="hint">The first one is highlighted. E.g. AD-FINEM.EU, DISCORD.GG/YOURINVITE, TWITCH.TV/YOURNAME</div>
+  </fieldset>
+
+  <fieldset data-tab="starting" data-preview="starting">
+    <label>Small line above the title</label><input type="text" data-k="starting.kicker">
+    <div class="row"><div><label>Title line 1</label><input type="text" data-k="starting.title.0"></div>
+                     <div><label>Title line 2</label><input type="text" data-k="starting.title.1"></div></div>
+    <div class="row"><div><label>Countdown (minutes)</label><input type="number" min="0" data-k="starting.countdownMinutes"></div>
+                     <div><label>…or count to a time</label><input type="text" placeholder="21:00" data-k="starting.countdownTo"></div></div>
+    <div class="hint">Set minutes to 0 and leave the time empty to hide the countdown. A time (e.g. 21:00) wins over minutes.</div>
+    <label>Countdown label</label><input type="text" data-k="starting.countdownLabel">
+    <label>Text when the countdown ends</label><input type="text" data-k="starting.doneText">
+    <label>Line under the countdown</label><input type="text" data-k="starting.subtitle">
+  </fieldset>
+
+  <fieldset data-tab="brb" data-preview="brb">
+    <label>Small line above the title</label><input type="text" data-k="brb.kicker">
+    <div class="row"><div><label>Title line 1</label><input type="text" data-k="brb.title.0"></div>
+                     <div><label>Title line 2</label><input type="text" data-k="brb.title.1"></div></div>
+    <div class="row"><div><label>Break timer (minutes)</label><input type="number" min="0" data-k="brb.countdownMinutes"></div>
+                     <div><label>Timer label</label><input type="text" data-k="brb.countdownLabel"></div></div>
+    <label>Text when the timer ends</label><input type="text" data-k="brb.doneText">
+    <label>Line under the title</label><input type="text" data-k="brb.subtitle">
+  </fieldset>
+
+  <fieldset data-tab="ending" data-preview="ending">
+    <label>Small line above the title</label><input type="text" data-k="ending.kicker">
+    <div class="row"><div><label>Title line 1</label><input type="text" data-k="ending.title.0"></div>
+                     <div><label>Title line 2</label><input type="text" data-k="ending.title.1"></div></div>
+    <label>Line under the title</label><input type="text" data-k="ending.subtitle">
+    <label class="check"><input type="checkbox" data-k="ending.showRecruiting"> Show the recruiting box</label>
+    <label>Recruiting heading</label><input type="text" data-k="ending.recruitingLabel">
+    <div class="row"><div><label>Recruiting text</label><input type="text" data-k="ending.recruitingText"></div>
+                     <div><label>Highlighted link</label><input type="text" data-k="ending.recruitingLink"></div></div>
+  </fieldset>
+
+  <fieldset data-tab="in-game" data-preview="ingame">
+    <label>Your name (on the webcam tag)</label><input type="text" data-k="general.streamerName" placeholder="e.g. JOLEE">
+    <label class="check"><input type="checkbox" data-k="ingame.showCamFrame"> Show the webcam frame</label>
+    <div class="row"><div><label>Cam X</label><input type="number" data-k="ingame.camX"></div>
+                     <div><label>Cam Y</label><input type="number" data-k="ingame.camY"></div></div>
+    <div class="row"><div><label>Cam width</label><input type="number" data-k="ingame.camWidth"></div>
+                     <div><label>Cam height</label><input type="number" data-k="ingame.camHeight"></div></div>
+    <div class="hint">In OBS, put your webcam at exactly these numbers (right-click the webcam → Transform → Edit Transform).</div>
+    <label class="check"><input type="checkbox" data-k="ingame.showProgress"> Show the raid progress pill</label>
+    <label>Pill position</label>
+    <select data-k="ingame.progressPosition"><option value="top-center">Top centre</option><option value="top-left">Top left</option><option value="top-right">Top right</option></select>
+    <label class="check"><input type="checkbox" data-k="ingame.raiderio"> Live progress from raider.io</label>
+    <div class="row"><div><label>Raid (raider.io slug)</label><input type="text" data-k="ingame.raid"></div>
+                     <div><label>Show rank</label><select data-k="ingame.rank"><option value="realm">Realm</option><option value="region">Region</option><option value="world">World</option><option value="none">No rank</option></select></div></div>
+    <div class="hint">Raid slug = the end of the raid's raider.io address, e.g. the-venomous-abyss. Use "auto" for the current raid.</div>
+    <div class="row"><div><label>Realm</label><input type="text" data-k="ingame.realm"></div>
+                     <div><label>Guild</label><input type="text" data-k="ingame.guild"></div></div>
+    <label>Text if raider.io is off or unreachable</label>
+    <div class="row"><div><input type="text" data-k="ingame.fallbackLabel" placeholder="MYTHIC"></div>
+                     <div><input type="text" data-k="ingame.fallbackValue" placeholder="6/8"></div></div>
+    <input type="text" data-k="ingame.fallbackRaid" placeholder="THE VENOMOUS ABYSS" style="margin-top:10px">
+  </fieldset>
+  <fieldset data-tab="sponsors" data-preview="sponsors">
+    <label class="check"><input type="checkbox" data-k="sponsors.enabled"> Show sponsors on stream</label>
+    <div class="row"><div><label>Look</label>
+      <select data-k="sponsors.style"><option value="card">Card (logo + text)</option><option value="banner">Wide banner</option><option value="logoonly">Logo only</option></select></div>
+      <div><label>Position</label>
+      <select data-k="sponsors.position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option>
+        <option value="bottom-center">Bottom centre</option><option value="top-right">Top right</option><option value="top-left">Top left</option><option value="top-center">Top centre</option></select></div></div>
+    <div class="row"><div><label>Size (%)</label><input type="number" min="30" max="250" data-k="sponsors.scale"></div>
+                     <div><label>Distance from edge (px)</label><input type="number" min="0" data-k="sponsors.margin"></div></div>
+    <div class="row"><div><label>Heading</label><input type="text" data-k="sponsors.heading" placeholder="PARTNERED WITH"></div>
+                     <div><label class="check" style="margin-top:38px"><input type="checkbox" data-k="sponsors.showHeading"> Show heading</label></div></div>
+    <label>When</label>
+    <select data-k="sponsors.mode"><option value="rotate">Always on screen, rotating</option><option value="interval">Pop up every few minutes</option></select>
+    <div class="row"><div><label>Seconds per sponsor</label><input type="number" min="3" data-k="sponsors.seconds"></div>
+                     <div><label class="check" style="margin-top:38px"><input type="checkbox" data-k="sponsors.showTimer"> Timer line</label></div></div>
+    <div data-mode="interval"><div class="row"><div><label>Every (minutes)</label><input type="number" min="1" data-k="sponsors.everyMinutes"></div>
+                     <div><label>Visible for (seconds)</label><input type="number" min="5" data-k="sponsors.showSeconds"></div></div></div>
+    <label>Show in scenes</label>
+    <div class="row"><label class="check"><input type="checkbox" data-k="sponsors.scenes.starting"> Starting Soon</label>
+                     <label class="check"><input type="checkbox" data-k="sponsors.scenes.ingame"> In-game</label></div>
+    <div class="row"><label class="check"><input type="checkbox" data-k="sponsors.scenes.brb"> BRB</label>
+                     <label class="check"><input type="checkbox" data-k="sponsors.scenes.ending"> Ending</label></div>
+    <label>Sponsors</label>
+    <div class="hint">They rotate in this order. Logo: PNG/SVG with a transparent background looks best.</div>
+    <div id="splist"></div>
+    <div class="btns" style="display:flex;gap:8px;margin-top:12px"><button class="sbtn primary" id="spadd">+ Add sponsor</button></div>
+  </fieldset>
+
+  <fieldset data-tab="alerts" data-preview="alerts">
+    <label>Alerts come from</label>
+    <select data-k="alerts.mode">
+      <option value="twitch">Built-in AD FINEM alerts (connect your Twitch)</option>
+      <option value="external">StreamElements / Streamlabs</option>
+      <option value="off">Off</option>
+    </select>
+
+    <div data-show="twitch">
+      <div class="twbox" id="twbox">Loading...</div>
+      <label class="check"><input type="checkbox" data-k="alerts.follows"> Follows</label>
+      <label class="check"><input type="checkbox" data-k="alerts.subs"> Subs and resubs</label>
+      <label class="check"><input type="checkbox" data-k="alerts.gifts"> Gifted subs</label>
+      <label class="check"><input type="checkbox" data-k="alerts.bits"> Bits</label>
+      <label class="check"><input type="checkbox" data-k="alerts.raids"> Raids</label>
+      <div class="row"><div><label>Min. bits</label><input type="number" min="1" data-k="alerts.minBits"></div>
+                       <div><label>Min. raid viewers</label><input type="number" min="1" data-k="alerts.minRaid"></div></div>
+      <label>Texts</label>
+      <div class="hint">{months} = months subscribed, {amount} = bits, gifts or raiders.</div>
+      <div class="row"><div><label>Follow</label><input type="text" data-k="alerts.followText"></div>
+                       <div><label>Sub</label><input type="text" data-k="alerts.subText"></div></div>
+      <div class="row"><div><label>Resub</label><input type="text" data-k="alerts.resubText"></div>
+                       <div><label>Gift subs</label><input type="text" data-k="alerts.giftText"></div></div>
+      <div class="row"><div><label>Bits</label><input type="text" data-k="alerts.bitsText"></div>
+                       <div><label>Raid</label><input type="text" data-k="alerts.raidText"></div></div>
+      <div class="row"><div><label>Seconds on screen</label><input type="number" min="4" data-k="alerts.duration"></div>
+                       <div><label>Volume (0-100)</label><input type="number" min="0" max="100" data-k="alerts.volume"></div></div>
+      <label class="check"><input type="checkbox" data-k="alerts.sound"> Play a notification sound</label>
+      <label>Position</label>
+      <select data-k="alerts.position"><option value="center">Upper middle</option><option value="top">Top</option></select>
+      <label>Try it</label>
+      <div class="tests" id="tests"></div>
+      <div class="hint">Click to play it in the preview. <b>Send to OBS</b> plays the last one in OBS too (save first).</div>
+    </div>
+
+    <div data-show="external">
+      <label>Your alert URL</label>
+      <input type="text" data-k="alerts.url" placeholder="https://streamelements.com/overlay/... or https://streamlabs.com/alert-box/...">
+      <div class="hint">StreamElements: My Overlays → your alert overlay → copy the link (chain icon).<br>
+        Streamlabs: Dashboard → Alert Box → Widget URL → Copy.<br>
+        Set your alert there to use <b>videos\alert_1x1_alpha.webm</b> from this kit. Test it with their Test buttons.</div>
+    </div>
+  </fieldset>
+</aside>
+
+<main>
+  <div class="pv-title" id="pvtitle">Preview</div>
+  <div class="stage" id="stage"><iframe id="pv" scrolling="no"></iframe></div>
+  <div class="hint">The video background is only in this preview. In OBS it's your animated loop or your game.</div>
+</main>
+
+<div class="bar"><button class="btn" id="reset">Undo changes</button><button class="btn primary" id="save">Save</button></div>
+<div class="toast" id="toast"></div>
+<div class="kitver" id="kitver"></div>
+
+<script>
+const TOKEN = "__AF_TOKEN__", SAVE_PATH = "__AF_SAVE_PATH__";
+const SERVED = !TOKEN.startsWith("__");          // true when opened through the kit's editor helper
+const ALERT_DEFAULTS = { mode: "twitch", url: "", follows: true, subs: true, gifts: true, bits: true, raids: true,
+  minBits: 1, minRaid: 1, followText: "NEW FOLLOWER", subText: "JUST SUBSCRIBED", resubText: "SUBSCRIBED · {months} MONTHS",
+  giftText: "GIFTED {amount} SUBS", bitsText: "CHEERED {amount} BITS", raidText: "RAIDING WITH {amount}",
+  duration: 7, volume: 70, sound: true, position: "center" };
+if (window.AF_SETTINGS) window.AF_SETTINGS.alerts = Object.assign({}, ALERT_DEFAULTS, window.AF_SETTINGS.alerts || {});
+const SPONSOR_DEFAULTS = { enabled: false, heading: "PARTNERED WITH", showHeading: true, style: "card", position: "bottom-right",
+  scale: 100, margin: 32, mode: "rotate", seconds: 12, everyMinutes: 10, showSeconds: 30, showTimer: true,
+  scenes: { starting: true, ingame: true, brb: true, ending: true }, items: [] };
+if (window.AF_SETTINGS) {
+  const sp = window.AF_SETTINGS.sponsors || {};
+  window.AF_SETTINGS.sponsors = Object.assign({}, SPONSOR_DEFAULTS, sp, { scenes: Object.assign({}, SPONSOR_DEFAULTS.scenes, sp.scenes || {}) });
+}
+const ORIGINAL = JSON.parse(JSON.stringify(window.AF_SETTINGS || {}));
+let S = JSON.parse(JSON.stringify(ORIGINAL));
+const TABS = [["general", "General"], ["starting", "Starting"], ["brb", "BRB"], ["ending", "Ending"], ["in-game", "In-game"], ["sponsors", "Sponsors"], ["alerts", "Alerts"]];
+const sets = [...document.querySelectorAll("fieldset")];
+let current = "general";
+
+const get = (o, path) => path.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
+function set(o, path, v) {
+  const ks = path.split("."); let a = o;
+  ks.slice(0, -1).forEach((k, i) => { if (a[k] == null) a[k] = /^\d+$/.test(ks[i + 1]) ? [] : {}; a = a[k]; });
+  a[ks.at(-1)] = v;
+}
+
+function fill() {
+  document.querySelectorAll("[data-k]").forEach(el => {
+    const v = get(S, el.dataset.k);
+    if (el.type === "checkbox") el.checked = v !== false && v != null ? !!v : false;
+    else if (el.hasAttribute("data-list")) el.value = (v || []).join("\n");
+    else el.value = v == null ? "" : v;
+  });
+}
+
+function read(el) {
+  let v = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value || 0)
+        : el.hasAttribute("data-list") ? el.value.split("\n").map(s => s.trim()).filter(Boolean) : el.value;
+  set(S, el.dataset.k, v);
+}
+
+function encode(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+
+let timer;
+function preview() {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const fs = sets.find(f => f.dataset.tab === current);
+    const page = fs.dataset.preview;
+    document.getElementById("stage").classList.toggle("game", page === "ingame" || page === "alerts" || page === "sponsors");
+    document.querySelectorAll("[data-mode]").forEach(d => d.style.display = ((S.sponsors || {}).mode === d.dataset.mode) ? "" : "none");
+    document.querySelectorAll("[data-show]").forEach(d => d.classList.toggle("on", d.dataset.show === ((S.alerts || {}).mode || "twitch")));
+    document.getElementById("pvtitle").textContent = "Preview - " + ({ starting: "Starting Soon", brb: "Be Right Back", ending: "Ending", ingame: "In-game", alerts: "Alerts", sponsors: "Sponsors" })[page];
+    document.getElementById("pv").src = `../overlays/${page}.html?t=${Date.now()}#s=${encodeURIComponent(encode(S))}${page === "alerts" ? "&demo=" + lastTest : ""}`;
+  }, 250);
+}
+
+function scale() {
+  const st = document.getElementById("stage");
+  document.getElementById("pv").style.transform = `scale(${st.clientWidth / 1920})`;
+}
+
+function show(tab) {
+  current = tab;
+  sets.forEach(f => f.classList.toggle("on", f.dataset.tab === tab));
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === tab));
+  preview();
+}
+
+function settingsFile() {
+  return `/* =====================================================================
+   AD FINEM STREAM KIT - ALL TEXT IN ONE PLACE
+   Easiest: open "Customize overlays" and click Save.
+   Or edit the text between the quotes below in Notepad and save.
+   OBS picks up the changes by itself within a few seconds.
+   ===================================================================== */
+window.AF_SETTINGS = ${JSON.stringify(S, null, 2)};
+`;
+}
+
+function toast(html, ms = 6000) {
+  const t = document.getElementById("toast"); t.innerHTML = html; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+// remember where settings.js is, so later saves are one click
+const DB = () => new Promise(res => { const r = indexedDB.open("af-kit", 1); r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => res(r.result); r.onerror = () => res(null); });
+async function getHandle() { try { const db = await DB(); if (!db) return null; return await new Promise(r => { const q = db.transaction("h").objectStore("h").get("settings"); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); }); } catch (e) { return null; } }
+async function putHandle(h) { try { const db = await DB(); if (db) db.transaction("h", "readwrite").objectStore("h").put(h, "settings"); } catch (e) {} }
+
+async function save() {
+  const text = settingsFile();
+  if (SERVED) {
+    try {
+      const r = await fetch("/api/save", { method: "POST", headers: { "X-AF-Token": TOKEN, "Content-Type": "text/javascript" }, body: text });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "save failed");
+      toast(`<b>Saved.</b> OBS updates by itself within a few seconds.<div class="savedpath">${j.path}</div>`);
+    } catch (e) {
+      toast("<b>Couldn't save.</b> Is the editor helper still running? Start <b>Customize overlays</b> again.", 12000);
+    }
+    return;
+  }
+  if (window.showSaveFilePicker) {
+    try {
+      let h = await getHandle();
+      if (h && (await h.requestPermission({ mode: "readwrite" })) !== "granted") h = null;
+      if (!h) {
+        h = await showSaveFilePicker({ suggestedName: "settings.js", startIn: "documents",
+          types: [{ description: "AD FINEM settings", accept: { "text/javascript": [".js"] } }] });
+        await putHandle(h);
+      }
+      const w = await h.createWritable(); await w.write(text); await w.close();
+      toast("<b>Saved.</b> In OBS, switch to another scene and back (or right-click the overlay → Refresh) to see it.");
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      console.warn(e);
+    }
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/javascript" })); a.download = "settings.js"; a.click();
+  toast("Your browser saved <b>settings.js</b> to Downloads. Move it into the <b>AD FINEM Stream Kit</b> folder and replace the old one.", 10000);
+}
+
+/* ---------------- sponsors list ---------------- */
+const splist = document.getElementById("splist");
+const escA = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const thumbUrl = p => !p ? "" : /^(https?:|data:)/i.test(p) ? p : "../" + String(p).replace(/\\/g, "/");
+function spItems() { if (!S.sponsors) S.sponsors = JSON.parse(JSON.stringify(SPONSOR_DEFAULTS)); if (!S.sponsors.items) S.sponsors.items = []; return S.sponsors.items; }
+function renderSponsors() {
+  const items = spItems();
+  splist.innerHTML = items.length ? items.map((it, i) => `
+    <div class="spitem ${it.on === false ? "off" : ""}" data-i="${i}">
+      <div class="top"><b>${escA(it.name || "Sponsor " + (i + 1))}</b>
+        <label class="check" style="margin:0"><input type="checkbox" data-f="on" ${it.on !== false ? "checked" : ""}> Show</label>
+        <button class="ic" data-act="up" title="Move up">↑</button><button class="ic" data-act="down" title="Move down">↓</button>
+        <button class="ic" data-act="del" title="Remove">✕</button></div>
+      <label>Name</label><input type="text" data-f="name" value="${escA(it.name)}" placeholder="e.g. SECRETLAB">
+      <label>Text</label><input type="text" data-f="text" value="${escA(it.text)}" placeholder="e.g. Official chair partner of Ad Finem">
+      <label>Code or link</label><input type="text" data-f="code" value="${escA(it.code)}" placeholder="e.g. CODE: ADFINEM  or  SECRETLAB.CO/ADFINEM">
+      <label>Logo</label>
+      <div class="logorow"><div class="thumb" style="background-image:url('${escA(thumbUrl(it.logo))}')"></div>
+        <input type="text" data-f="logo" value="${escA(it.logo)}" placeholder="Upload, or paste an image URL">
+        <button class="sbtn" data-act="upload">Upload</button></div>
+    </div>`).join("") : `<div class="hint" style="margin-top:10px">No sponsors yet - click <b>Add sponsor</b>.</div>`;
+}
+splist.addEventListener("input", e => {
+  const box = e.target.closest(".spitem"), f = e.target.dataset.f; if (!box || !f) return;
+  const it = spItems()[+box.dataset.i];
+  it[f] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+  if (f === "on") box.classList.toggle("off", !e.target.checked);
+  if (f === "name") box.querySelector(".top b").textContent = e.target.value || "Sponsor " + (+box.dataset.i + 1);
+  if (f === "logo") box.querySelector(".thumb").style.backgroundImage = `url('${thumbUrl(e.target.value)}')`;
+  preview();
+});
+splist.addEventListener("click", async e => {
+  const act = e.target.dataset.act; if (!act) return;
+  const box = e.target.closest(".spitem"), i = +box.dataset.i, items = spItems();
+  if (act === "del") { if (!confirmDel(items[i])) return; items.splice(i, 1); }
+  if (act === "up" && i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+  if (act === "down" && i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+  if (act === "upload") return pickLogo(i);
+  renderSponsors(); preview();
+});
+function confirmDel(it) { return !(it.name || it.logo) || window.confirm(`Remove ${it.name || "this sponsor"}?`); }
+document.getElementById("spadd").addEventListener("click", () => {
+  spItems().push({ on: true, name: "", text: "", code: "", logo: "" });
+  if (spItems().length === 1) S.sponsors.enabled = true;
+  fill(); renderSponsors(); preview();
+  splist.lastElementChild.querySelector("input[data-f=name]").focus();
+});
+function pickLogo(i) {
+  if (!SERVED) return toast("Open the editor with <b>Customize overlays</b> to upload logos, or paste an image URL.");
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/png,image/jpeg,image/webp,image/svg+xml,image/gif";
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) return toast("That image is too big (max 8 MB).");
+    try {
+      const r = await fetch("/api/upload?name=" + encodeURIComponent(f.name), { method: "POST", headers: { "X-AF-Token": TOKEN, "Content-Type": "application/octet-stream" }, body: f });
+      const j = await r.json(); if (!j.ok) throw new Error(j.error || "upload failed");
+      spItems()[i].logo = j.path; renderSponsors(); preview();
+      toast(`Logo added (<b>${escA(j.path)}</b>). Click <b>Save</b> to use it on stream.`);
+    } catch (err) { toast("Couldn't upload the logo: " + escA(err.message)); }
+  };
+  inp.click();
+}
+renderSponsors();
+
+/* ---------------- alerts: tests + Twitch connect ---------------- */
+let lastTest = "follow";
+const TESTS = [["follow", "Follow"], ["sub", "Sub"], ["resub", "Resub"], ["gift", "Gift subs"], ["bits", "Bits"], ["raid", "Raid"]];
+document.getElementById("tests").innerHTML = TESTS.map(([k, n]) => `<button class="sbtn" data-test="${k}">${n}</button>`).join("")
+  + `<button class="sbtn primary" id="testobs">Send to OBS</button>`;
+document.getElementById("tests").addEventListener("click", async e => {
+  const k = e.target.dataset.test;
+  if (k) { lastTest = k; document.getElementById("pv").contentWindow.postMessage({ afTest: k }, "*"); return; }
+  if (e.target.id === "testobs") {
+    if (!SERVED) return toast("Open the editor with <b>Customize overlays</b> to send tests to OBS.");
+    const ok = await writeFile("alert_test", { stamp: Date.now(), type: lastTest });
+    toast(ok ? `Sent a <b>${lastTest}</b> test to OBS. It shows within a few seconds (the alerts must be in the current scene).` : "Couldn't reach the editor helper.");
+  }
+});
+
+async function writeFile(name, data) {
+  try {
+    const r = await fetch("/api/file?name=" + name, { method: "POST", headers: { "X-AF-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    return (await r.json()).ok === true;
+  } catch (e) { return false; }
+}
+
+const CLIENT = window.AF_TWITCH_CLIENT_ID || "";
+const SCOPES = "moderator:read:followers channel:read:subscriptions bits:read";
+let AUTH = window.AF_TWITCH_AUTH || null, pollTimer = null;
+const twbox = document.getElementById("twbox");
+function twRender(state, extra = {}) {
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  if (!CLIENT) { twbox.innerHTML = `The kit's Twitch app isn't set up yet (<b>overlays/twitch-app.js</b> has no Client ID). Ask the kit's maintainer, or use StreamElements / Streamlabs above.`; return; }
+  if (!SERVED) { twbox.innerHTML = `Open the editor with <b>Customize overlays</b> to connect Twitch.`; return; }
+  if (state === "wait") {
+    twbox.innerHTML = `<div>On <b>twitch.tv/activate</b>, log in with your streaming account and enter:</div>
+      <div class="code">${esc(extra.code)}</div><div class="hint">Waiting for Twitch...</div>
+      <div class="btns"><a class="sbtn primary" href="${esc(extra.url)}" target="_blank" rel="noopener">Open twitch.tv/activate</a><button class="sbtn" data-tw="cancel">Cancel</button></div>`;
+    return;
+  }
+  if (AUTH && AUTH.refresh_token) {
+    twbox.innerHTML = `<div class="who">Connected as <b>${esc(AUTH.login || "your channel")}</b>. Alerts work in OBS while you stream.</div>
+      <div class="btns"><button class="sbtn" data-tw="connect">Use another account</button><button class="sbtn" data-tw="disconnect">Disconnect</button></div>`;
+    return;
+  }
+  twbox.innerHTML = `<div>Connect the Twitch account you stream on. You only do this once.</div>
+    ${extra.error ? `<div class="hint" style="color:var(--coral)">${esc(extra.error)}</div>` : ""}
+    <div class="btns"><button class="sbtn primary" data-tw="connect">Connect Twitch</button></div>`;
+}
+const form = o => ({ method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(o) });
+async function twConnect() {
+  clearTimeout(pollTimer);
+  try {
+    const d = await fetch("https://id.twitch.tv/oauth2/device", form({ client_id: CLIENT, scopes: SCOPES })).then(r => r.json());
+    if (!d.device_code) throw new Error(d.message || "Twitch said no");
+    twRender("wait", { code: d.user_code, url: d.verification_uri });
+    window.open(d.verification_uri, "_blank", "noopener");
+    const until = Date.now() + (d.expires_in || 1800) * 1000;
+    let every = (d.interval || 5) * 1000;
+    const poll = async () => {
+      if (Date.now() > until) return twRender("idle", { error: "The code expired. Try again." });
+      const r = await fetch("https://id.twitch.tv/oauth2/token", form({ client_id: CLIENT, scopes: SCOPES, device_code: d.device_code,
+        grant_type: "urn:ietf:params:oauth:grant-type:device_code" }));
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.access_token) {
+        const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + j.access_token } }).then(x => x.json());
+        const data = { stamp: Date.now(), login: v.login, user_id: v.user_id, access_token: j.access_token,
+                       refresh_token: j.refresh_token, expires_at: Date.now() + (j.expires_in || 3600) * 1000 };
+        if (!(await writeFile("twitch_auth", data))) return twRender("idle", { error: "Couldn't save the connection. Is the editor helper still running?" });
+        AUTH = data; twRender("idle"); toast(`<b>Twitch connected</b> as ${v.login}. OBS picks it up within a few seconds.`);
+        return;
+      }
+      const msg = (j.message || "").toLowerCase();
+      if (msg.includes("slow_down")) every += 5000;
+      else if (!msg.includes("authorization_pending")) return twRender("idle", { error: "Twitch: " + (j.message || r.status) });
+      pollTimer = setTimeout(poll, every);
+    };
+    pollTimer = setTimeout(poll, every);
+  } catch (e) { twRender("idle", { error: "Couldn't reach Twitch: " + e.message }); }
+}
+async function twDisconnect() {
+  try { if (AUTH && AUTH.access_token) await fetch("https://id.twitch.tv/oauth2/revoke", form({ client_id: CLIENT, token: AUTH.access_token })); } catch (e) {}
+  await writeFile("twitch_auth", null); AUTH = null; twRender("idle"); toast("Twitch disconnected.");
+}
+twbox.addEventListener("click", e => {
+  const a = e.target.dataset.tw;
+  if (a === "connect") twConnect();
+  if (a === "disconnect") twDisconnect();
+  if (a === "cancel") { clearTimeout(pollTimer); twRender("idle"); }
+});
+twRender("idle");
+
+document.getElementById("tabs").innerHTML = TABS.map(([t, n]) => `<button data-t="${t}">${n}</button>`).join("");
+document.getElementById("tabs").addEventListener("click", e => { if (e.target.dataset.t) show(e.target.dataset.t); });
+document.querySelectorAll("[data-k]").forEach(el => el.addEventListener("input", () => { read(el); preview(); }));
+document.getElementById("save").addEventListener("click", save);
+document.getElementById("reset").addEventListener("click", () => { S = JSON.parse(JSON.stringify(ORIGINAL)); fill(); renderSponsors(); preview(); toast("Changes undone."); });
+window.addEventListener("resize", scale);
+if (!SERVED) document.getElementById("warn").classList.add("on");
+if (!window.AF_SETTINGS) toast("Couldn't read <b>settings.js</b>. Keep this page in the AD FINEM Stream Kit folder.", 12000);
+fill(); scale(); show("general");
+
+/* ---------------- kit updates ---------------- */
+(async () => {
+  if (!SERVED) return;
+  try {
+    const j = await fetch("/api/version", { headers: { "X-AF-Token": TOKEN } }).then(r => r.json());
+    if (j.current) document.getElementById("kitver").textContent = "AD FINEM Stream Kit v" + j.current;
+    if (!j.ok || !j.available) return;
+    const box = document.getElementById("upd");
+    box.innerHTML = `<b>Update available: v${escA(j.latest)}</b> (you have v${escA(j.current)}).
+      Your texts, sponsors and Twitch connection are kept.
+      <div class="btns" style="display:flex;gap:8px;margin-top:10px">${j.canInstall
+        ? `<button class="sbtn primary" id="updbtn">Update now</button>`
+        : `<a class="sbtn primary" href="${escA(j.page)}" target="_blank" rel="noopener">Download</a>`}
+      <a class="sbtn" href="${escA(j.page)}" target="_blank" rel="noopener">What's new</a></div>`;
+    box.classList.add("on");
+    const b = document.getElementById("updbtn");
+    if (b) b.onclick = async () => {
+      b.disabled = true; b.textContent = "Downloading...";
+      await fetch("/api/update", { method: "POST", headers: { "X-AF-Token": TOKEN } });
+      toast("<b>Downloading the update.</b> The installer opens in a moment - it asks you to close OBS. Save your changes here first.", 15000);
+    };
+  } catch (e) {}
+})();
+</script>
+</body></html>

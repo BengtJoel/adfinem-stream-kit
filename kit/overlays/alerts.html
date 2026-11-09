@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>AD FINEM - Alerts</title>
+<link rel="stylesheet" href="af.css">
+<script src="../settings.js"></script>
+<script src="settings-loader.js"></script>
+<script src="twitch-app.js"></script>
+<script src="../_system/twitch_auth.js" onerror="window.AF_TWITCH_AUTH = null"></script>
+<style>
+  html, body { background: transparent !important; }
+  #stage { position: absolute; inset: 0; pointer-events: none; }
+  .alert { position: absolute; left: 50%; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
+  .alert.top { top: 40px; } .alert.center { top: 230px; }
+  .alert video { width: 340px; height: 340px; display: block; }
+  .alert .card {
+    margin-top: -46px; padding: 18px 34px 20px; min-width: 420px; text-align: center; border-radius: 10px;
+    background: linear-gradient(180deg, rgba(20,24,33,.94), rgba(12,14,20,.94));
+    border: 1px solid rgba(203,213,235,.10); box-shadow: 0 24px 60px -24px #000, inset 0 1px 0 rgba(203,213,235,.06);
+    opacity: 0; transform: translateY(14px) scale(.98);
+  }
+  .alert .card::before {      /* brand ember line on top */
+    content: ""; display: block; height: 3px; width: 120px; margin: -18px auto 16px; border-radius: 0 0 3px 3px;
+    background: var(--ember-grad); box-shadow: 0 0 18px rgba(238,154,91,.8);
+  }
+  .alert .name { font: 800 44px/1.05 "Archivo", sans-serif; letter-spacing: .04em; color: var(--text); text-transform: uppercase; }
+  .alert .what { margin-top: 10px; font: 600 17px/1 "Archivo", sans-serif; letter-spacing: .22em; color: var(--amber); text-transform: uppercase; }
+  .alert .msg  { margin-top: 12px; max-width: 560px; color: var(--muted); font-size: 18px; line-height: 1.35; }
+  .alert.in  .card { animation: card-in .55s cubic-bezier(.2,.8,.2,1) .55s forwards; }
+  .alert.out { animation: alert-out .5s ease-in forwards; }
+  @keyframes card-in { to { opacity: 1; transform: none; } }
+  @keyframes alert-out { to { opacity: 0; transform: translate(-50%, -12px); } }
+  #ext { position: absolute; inset: 0; width: 1920px; height: 1080px; border: 0; background: transparent; }
+  #status { position: absolute; left: 24px; bottom: 20px; padding: 8px 12px; border-radius: 6px; font-size: 14px;
+    background: rgba(12,14,20,.85); color: var(--muted); display: none; }
+</style>
+</head><body>
+<div id="stage"></div>
+<div id="status"></div>
+<script>
+(function () {
+  const A = AF_GET("alerts") || {};
+  const PREVIEW = /[#&]s=/.test(location.hash);           // shown inside the editor
+  const mode = A.mode || "twitch";
+  const stage = document.getElementById("stage");
+  const statusEl = document.getElementById("status");
+  const log = (...a) => console.log("[AF alerts]", ...a);
+  const status = (t) => { if (PREVIEW) { statusEl.textContent = t; statusEl.style.display = t ? "block" : "none"; } log(t); };
+  const on = (k) => A[k] !== false;
+
+  /* ---------------- StreamElements / Streamlabs: show their alert page ---------------- */
+  if (mode === "external") {
+    if (A.url && /^https:\/\//.test(A.url)) {
+      const f = document.createElement("iframe");
+      f.id = "ext"; f.src = A.url; f.allow = "autoplay"; f.setAttribute("allowtransparency", "true");
+      document.body.appendChild(f);
+      if (PREVIEW) status("Your StreamElements / Streamlabs alerts run here. Use their Test buttons to see them.");
+    } else if (PREVIEW) status("Paste your StreamElements or Streamlabs alert URL on the left.");
+    return;
+  }
+  if (mode === "off") { if (PREVIEW) status("Alerts are off."); return; }
+
+  /* ---------------- built-in alerts ---------------- */
+  const T = {
+    follow: A.followText || "NEW FOLLOWER",
+    sub: A.subText || "JUST SUBSCRIBED",
+    resub: A.resubText || "SUBSCRIBED · {months} MONTHS",
+    gift: A.giftText || "GIFTED {amount} SUBS",
+    bits: A.bitsText || "CHEERED {amount} BITS",
+    raid: A.raidText || "RAIDING WITH {amount}",
+  };
+  const seconds = Math.max(4, Number(A.duration) || 7);
+  const volume = Math.min(1, Math.max(0, (A.volume == null ? 70 : Number(A.volume)) / 100));
+  const pos = A.position === "top" ? "top" : "center";
+  const queue = []; let busy = false;
+
+  function fill(t, ev) {
+    return AF_ESC(t).replace(/\{amount\}/g, AF_ESC(ev.amount ?? "")).replace(/\{months\}/g, AF_ESC(ev.months ?? ""))
+                    .replace(/\{name\}/g, AF_ESC(ev.name ?? ""));
+  }
+  function push(ev) { queue.push(ev); if (!busy) next(); }
+  function next() {
+    const ev = queue.shift();
+    if (!ev) { busy = false; return; }
+    busy = true;
+    const el = document.createElement("div");
+    el.className = "alert in " + pos;
+    el.innerHTML = `<video src="../videos/alert_1x1_alpha.webm" autoplay playsinline></video>
+      <div class="card"><div class="name">${AF_ESC(ev.name || "Anonymous")}</div>
+      <div class="what">${fill(T[ev.kind], ev)}</div>${ev.msg ? `<div class="msg">${AF_ESC(ev.msg)}</div>` : ""}</div>`;
+    const v = el.querySelector("video"); v.volume = volume;
+    if (A.sound !== false) { const s = new Audio("../videos/alert_chime.ogg"); s.volume = volume; s.play().catch(() => {}); }
+    stage.appendChild(el);
+    setTimeout(() => el.classList.add("out"), seconds * 1000);
+    setTimeout(() => { el.remove(); setTimeout(next, 400); }, seconds * 1000 + 520);
+  }
+  const SAMPLES = {
+    follow: { kind: "follow", name: "Thrallsbane" },
+    sub: { kind: "sub", name: "Mythrandir" },
+    resub: { kind: "resub", name: "Mythrandir", months: 14, msg: "To the end!" },
+    gift: { kind: "gift", name: "Kaelthas", amount: 5 },
+    bits: { kind: "bits", name: "Jaina", amount: 500 },
+    raid: { kind: "raid", name: "Ad Finem", amount: 42 },
+  };
+  window.AF_TEST = (k) => push(Object.assign({}, SAMPLES[k] || SAMPLES.follow));
+  addEventListener("message", (e) => { if (e.data && e.data.afTest) AF_TEST(e.data.afTest); });
+
+  if (PREVIEW) {               // editor preview: show a sample and loop it, no Twitch connection
+    const h = location.hash.match(/[#&]demo=(\w+)/);
+    AF_TEST(h ? h[1] : "follow");
+    return;
+  }
+
+  /* "Send test to OBS" from the editor writes _system/alert_test.js - poll it */
+  let lastTest = null;
+  function pollTest() {
+    const tag = document.createElement("script");
+    const keep = window.AF_ALERT_TEST;
+    tag.src = "../_system/alert_test.js?v=" + Date.now();
+    tag.onload = () => {
+      const t = window.AF_ALERT_TEST; tag.remove(); window.AF_ALERT_TEST = keep;
+      if (t && t.stamp) { if (lastTest !== null && t.stamp !== lastTest) AF_TEST(t.type); lastTest = t.stamp; }
+      else if (lastTest === null) lastTest = 0;
+    };
+    tag.onerror = () => { tag.remove(); if (lastTest === null) lastTest = 0; };
+    document.head.appendChild(tag);
+  }
+  pollTest(); setInterval(pollTest, 3000);
+
+  /* ---------------- Twitch: tokens ---------------- */
+  const CLIENT = window.AF_TWITCH_CLIENT_ID;
+  const FILE = window.AF_TWITCH_AUTH;
+  const LS = "af_twitch_v1";
+  if (!CLIENT) return log("No Twitch Client ID in twitch-app.js - built-in alerts are off.");
+  if (!FILE || !FILE.refresh_token) return log("Not connected to Twitch. Use Customize overlays > Alerts > Connect Twitch.");
+
+  // Refresh tokens can be used once, so the newest one lives in this browser's storage.
+  // A new "Connect Twitch" (new stamp in the file) always wins.
+  let tok = FILE;
+  try { const l = JSON.parse(localStorage.getItem(LS) || "null"); if (l && l.stamp === FILE.stamp && l.refresh_token) tok = l; } catch (e) {}
+  const keep = () => { try { localStorage.setItem(LS, JSON.stringify(tok)); } catch (e) {} };
+
+  // reconnect when the streamer connects a (new) account in the editor
+  setInterval(() => {
+    const tag = document.createElement("script"); const k = window.AF_TWITCH_AUTH;
+    tag.src = "../_system/twitch_auth.js?v=" + Date.now();
+    tag.onload = () => { const f = window.AF_TWITCH_AUTH; tag.remove(); window.AF_TWITCH_AUTH = k;
+      if (!f || (f.stamp || 0) !== (FILE.stamp || 0)) location.reload(); };
+    tag.onerror = () => tag.remove();
+    document.head.appendChild(tag);
+  }, 10000);
+
+  let refreshing = null;
+  function refresh() {
+    if (refreshing) return refreshing;
+    refreshing = fetch("https://id.twitch.tv/oauth2/token", {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: CLIENT, grant_type: "refresh_token", refresh_token: tok.refresh_token }),
+    }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+      if (!ok || !j.access_token) throw new Error("refresh failed: " + (j.message || "unknown") + " - connect Twitch again in Customize overlays");
+      tok = Object.assign({}, tok, { access_token: j.access_token, refresh_token: j.refresh_token || tok.refresh_token,
+                                      expires_at: Date.now() + (j.expires_in || 3600) * 1000 });
+      keep(); return tok.access_token;
+    }).finally(() => { refreshing = null; });
+    return refreshing;
+  }
+  async function token() {
+    if (!tok.access_token || !tok.expires_at || Date.now() > tok.expires_at - 5 * 60 * 1000) return refresh();
+    return tok.access_token;
+  }
+  async function helix(method, path, body, retry = true) {
+    const r = await fetch("https://api.twitch.tv/helix/" + path, {
+      method, headers: { "Client-Id": CLIENT, "Authorization": "Bearer " + await token(), "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (r.status === 401 && retry) { tok.expires_at = 0; return helix(method, path, body, false); }
+    return { status: r.status, json: await r.json().catch(() => ({})) };
+  }
+  setInterval(() => { token().catch(e => log(e.message)); }, 10 * 60 * 1000);   // keep it fresh
+
+  /* ---------------- Twitch: EventSub over WebSocket ---------------- */
+  const uid = String(tok.user_id || FILE.user_id || "");
+  const want = [];
+  if (on("follows")) want.push(["channel.follow", "2", { broadcaster_user_id: uid, moderator_user_id: uid }]);
+  if (on("subs")) {
+    want.push(["channel.subscribe", "1", { broadcaster_user_id: uid }]);
+    want.push(["channel.subscription.message", "1", { broadcaster_user_id: uid }]);
+  }
+  if (on("gifts")) want.push(["channel.subscription.gift", "1", { broadcaster_user_id: uid }]);
+  if (on("bits")) want.push(["channel.cheer", "1", { broadcaster_user_id: uid }]);
+  if (on("raids")) want.push(["channel.raid", "1", { to_broadcaster_user_id: uid }]);
+  const minBits = Number(A.minBits) || 1, minRaid = Number(A.minRaid) || 1;
+
+  function handle(type, e) {
+    switch (type) {
+      case "channel.follow": return push({ kind: "follow", name: e.user_name });
+      case "channel.subscribe": if (e.is_gift) return; return push({ kind: "sub", name: e.user_name });
+      case "channel.subscription.message":
+        return push({ kind: "resub", name: e.user_name, months: e.cumulative_months, msg: e.message && e.message.text });
+      case "channel.subscription.gift":
+        return push({ kind: "gift", name: e.is_anonymous ? "Anonymous" : e.user_name, amount: e.total });
+      case "channel.cheer": if (e.bits < minBits) return;
+        return push({ kind: "bits", name: e.is_anonymous ? "Anonymous" : e.user_name, amount: e.bits, msg: e.message });
+      case "channel.raid": if (e.viewers < minRaid) return;
+        return push({ kind: "raid", name: e.from_broadcaster_user_name, amount: e.viewers });
+    }
+  }
+
+  let ws = null, watchdog = null, backoff = 2000;
+  const seen = new Set();
+  function open(url, isReconnect) {
+    const sock = new WebSocket(url || "wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30");
+    let keepalive = 40;
+    const bump = () => { clearTimeout(watchdog); watchdog = setTimeout(() => { log("connection went quiet - reconnecting"); try { sock.close(); } catch (e) {} }, (keepalive + 15) * 1000); };
+    sock.onmessage = async (m) => {
+      let msg; try { msg = JSON.parse(m.data); } catch (e) { return; }
+      const meta = msg.metadata || {}, p = msg.payload || {};
+      if (sock !== ws && meta.message_type !== "session_welcome") return;
+      bump();
+      if (meta.message_id) { if (seen.has(meta.message_id)) return; seen.add(meta.message_id); if (seen.size > 500) seen.clear(); }
+      switch (meta.message_type) {
+        case "session_welcome": {
+          keepalive = p.session.keepalive_timeout_seconds || 30; bump();
+          const old = ws; ws = sock; backoff = 2000;
+          if (isReconnect && old) { try { old.close(); } catch (e) {} log("moved to new connection"); return; }
+          for (const [type, version, condition] of want) {
+            const r = await helix("POST", "eventsub/subscriptions", { type, version, condition, transport: { method: "websocket", session_id: p.session.id } });
+            if (r.status >= 300) log("could not listen for", type, r.status, r.json.message || "");
+          }
+          log("connected - listening for", want.map(w => w[0]).join(", "));
+          break;
+        }
+        case "notification": handle(p.subscription.type, p.event || {}); break;
+        case "session_reconnect": open(p.session.reconnect_url, true); break;
+        case "revocation": log("Twitch stopped", p.subscription && p.subscription.type, p.subscription && p.subscription.status); break;
+      }
+    };
+    sock.onclose = () => {
+      if (sock !== ws) return;           // an old socket after a reconnect
+      ws = null; clearTimeout(watchdog);
+      setTimeout(() => open(), backoff); backoff = Math.min(backoff * 2, 60000);
+    };
+    if (!isReconnect) ws = sock;
+  }
+
+  (async () => {
+    try {
+      await token();
+      if (!uid) {   // older connect without user id
+        const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + tok.access_token } }).then(r => r.json());
+        tok.user_id = v.user_id; keep(); location.reload(); return;
+      }
+      open();
+    } catch (e) { log(e.message); setTimeout(() => location.reload(), 5 * 60 * 1000); }
+  })();
+})();
+</script>
+</body></html>

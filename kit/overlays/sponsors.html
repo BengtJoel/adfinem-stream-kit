@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>AD FINEM - Sponsors</title>
+<link rel="stylesheet" href="af.css">
+<script src="../settings.js"></script>
+<script src="settings-loader.js"></script>
+<style>
+  html, body { background: transparent !important; }
+  #wrap { position: absolute; transform-origin: var(--origin); }
+  #wrap.bottom-right { right: var(--m); bottom: var(--m); --origin: 100% 100%; }
+  #wrap.bottom-left  { left: var(--m);  bottom: var(--m); --origin: 0 100%; }
+  #wrap.top-right    { right: var(--m); top: var(--m);    --origin: 100% 0; }
+  #wrap.top-left     { left: var(--m);  top: var(--m);    --origin: 0 0; }
+  #wrap.bottom-center { left: 50%; bottom: var(--m); --origin: 50% 100%; translate: -50% 0; }
+  #wrap.top-center    { left: 50%; top: var(--m);    --origin: 50% 0;   translate: -50% 0; }
+
+  .sp { position: relative; display: flex; align-items: center; gap: 18px; color: var(--text);
+    background: linear-gradient(180deg, rgba(20,24,33,.92), rgba(12,14,20,.92));
+    border: 1px solid rgba(203,213,235,.10); border-radius: 10px;
+    box-shadow: 0 22px 50px -24px #000, inset 0 1px 0 rgba(203,213,235,.06); overflow: hidden; }
+  .sp .head { position: absolute; left: 18px; top: 12px; display: flex; align-items: center; gap: 10px;
+    font: 600 11px/1 "Archivo", sans-serif; letter-spacing: .26em; color: var(--coral); text-transform: uppercase; }
+  .sp .head::before { content: ""; width: 18px; height: 3px; border-radius: 2px; background: var(--ember-grad); box-shadow: 0 0 10px rgba(238,154,91,.7); }
+  .sp .logo { flex: none; display: flex; align-items: center; justify-content: center; }
+  .sp .logo img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+  .sp .txt { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .sp .name { font: 800 22px/1.05 "Archivo", sans-serif; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .sp .tag  { color: var(--muted); font-size: 15px; line-height: 1.3; max-width: 360px; }
+  .sp .code { align-self: flex-start; margin-top: 4px; padding: 6px 10px; border-radius: 5px; font: 700 13px/1 "Archivo", sans-serif;
+    letter-spacing: .14em; color: #0A0C11; background: linear-gradient(135deg, var(--coral), var(--amber)); white-space: nowrap; }
+  .sp .bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--ember-grad); transform-origin: 0 0; opacity: .8; }
+
+  /* card: logo + text, compact */
+  .sp.card { padding: 38px 24px 20px 20px; min-width: 300px; }
+  .sp.card .logo { width: 84px; height: 84px; border-radius: 8px; background: rgba(255,255,255,.04); padding: 8px; }
+  .sp.card.nohead { padding-top: 20px; }
+  /* banner: wide strip */
+  .sp.banner { padding: 16px 26px 16px 22px; width: 760px; border-left: 3px solid var(--coral); border-radius: 6px; }
+  .sp.banner .head { position: static; flex: none; writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .3em; font-size: 10px; }
+  .sp.banner .head::before { display: none; }
+  .sp.banner .logo { width: 150px; height: 64px; }
+  .sp.banner .txt { flex: 1; }
+  .sp.banner .code { align-self: center; margin: 0 0 0 auto; padding: 10px 14px; font-size: 15px; }
+  /* logo only */
+  .sp.logoonly { padding: 38px 26px 22px; flex-direction: column; gap: 0; }
+  .sp.logoonly.nohead { padding-top: 22px; }
+  .sp.logoonly .logo { width: 260px; height: 100px; }
+  .sp.logoonly .txt { display: none; }
+  .sp.logoonly.nologo .txt { display: flex; align-items: center; }
+
+  .sp.in  { animation: sp-in .6s cubic-bezier(.2,.8,.2,1) both; }
+  .sp.out { animation: sp-out .45s ease-in both; }
+  #wrap[class*="right"] .sp.in { --dx: 30px; } #wrap[class*="left"] .sp.in { --dx: -30px; }
+  #wrap[class*="center"] .sp.in { --dy: 20px; }
+  @keyframes sp-in { from { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 0)); } to { opacity: 1; transform: none; } }
+  @keyframes sp-out { to { opacity: 0; transform: translateY(8px); } }
+  @keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+</style>
+</head><body>
+<div id="wrap"></div>
+<script>
+(function () {
+  const C = AF_GET("sponsors") || {};
+  const PREVIEW = /[#&]s=/.test(location.hash);
+  const wrap = document.getElementById("wrap");
+  const E = AF_ESC;
+  const SAMPLE = [{ on: true, name: "Your sponsor", text: "Add sponsors on the left - logo, text and a code.", code: "CODE: ADFINEM", logo: "" }];
+
+  let items = (C.items || []).filter(s => s && s.on !== false && (s.name || s.logo));
+  if (!items.length && PREVIEW) items = SAMPLE;
+  if (!items.length || (C.enabled === false && !PREVIEW)) return;
+
+  const style = ["card", "banner", "logoonly"].includes(C.style) ? C.style : "card";
+  wrap.className = C.position || "bottom-right";
+  wrap.style.setProperty("--m", (C.margin == null ? 32 : +C.margin) + "px");
+  wrap.style.transform = `scale(${Math.max(30, Math.min(250, +C.scale || 100)) / 100})`;
+  const per = Math.max(3, +C.seconds || 12) * 1000;
+  const heading = C.showHeading !== false && C.heading ? C.heading : "";
+  const src = p => /^(https?:|data:)/i.test(p) ? p : "../" + String(p).replace(/^\.?\/+/, "").replace(/\\/g, "/");
+
+  function card(s) {
+    const el = document.createElement("div");
+    el.className = `sp ${style} in` + (heading ? "" : " nohead") + (s.logo ? "" : " nologo");
+    el.innerHTML =
+      (heading ? `<div class="head">${E(heading)}</div>` : "") +
+      (s.logo ? `<div class="logo"><img src="${E(src(s.logo))}" alt=""></div>` : "") +
+      `<div class="txt">${s.name ? `<div class="name">${E(s.name)}</div>` : ""}` +
+      (s.text ? `<div class="tag">${E(s.text)}</div>` : "") +
+      (s.code && style !== "banner" ? `<div class="code">${E(s.code)}</div>` : "") + `</div>` +
+      (s.code && style === "banner" ? `<div class="code">${E(s.code)}</div>` : "") +
+      (items.length > 1 && C.showTimer !== false ? `<div class="bar" style="animation: drain ${per}ms linear forwards"></div>` : "");
+    return el;
+  }
+
+  let idx = 0, cur = null, rotTimer = null, visible = false;
+  function showNext() {
+    const s = items[idx % items.length]; idx++;
+    const el = card(s);
+    if (cur) { const old = cur; old.classList.remove("in"); old.classList.add("out"); setTimeout(() => { old.remove(); wrap.appendChild(el); }, 450); }
+    else wrap.appendChild(el);
+    cur = el;
+  }
+  function start() {
+    if (visible) return; visible = true;
+    showNext();
+    if (items.length > 1) rotTimer = setInterval(showNext, per);
+  }
+  function stop() {
+    if (!visible) return; visible = false;
+    clearInterval(rotTimer);
+    if (cur) { const old = cur; cur = null; old.classList.remove("in"); old.classList.add("out"); setTimeout(() => old.remove(), 450); }
+  }
+
+  if (PREVIEW) { start(); return; }
+
+  /* which scenes show sponsors (OBS tells the page the current scene) */
+  const scenes = Object.assign({ starting: true, ingame: true, brb: true, ending: true, other: true }, C.scenes || {});
+  const keyOf = n => /starting/i.test(n) ? "starting" : /in-?game/i.test(n) ? "ingame" : /brb|right back/i.test(n) ? "brb"
+                   : /ending/i.test(n) ? "ending" : "other";
+  let sceneOk = true;
+
+  /* always on, or pop up every few minutes */
+  let windowOpen = C.mode !== "interval";
+  function apply() { (sceneOk && windowOpen) ? start() : stop(); }
+  if (C.mode === "interval") {
+    const every = Math.max(1, +C.everyMinutes || 10) * 60000;
+    const show = Math.max(5, +C.showSeconds || 30) * 1000;
+    const popup = () => { windowOpen = true; apply(); setTimeout(() => { windowOpen = false; apply(); }, show); };
+    setTimeout(() => { popup(); setInterval(popup, every); }, 20000);
+  }
+  if (window.obsstudio && window.obsstudio.getCurrentScene) {
+    const set = n => { sceneOk = scenes[keyOf(n || "")] !== false; apply(); };
+    window.addEventListener("obsSceneChanged", e => set(e.detail && e.detail.name));
+    try { window.obsstudio.getCurrentScene(s => set(s && s.name)); } catch (e) { apply(); }
+  } else apply();
+})();
+</script>
+</body></html>

@@ -1,0 +1,33 @@
+/* Layout for Starting Soon / BRB / Ending. Sits over the hero_plate_16x9 loop (emblem on the right). */
+.screen {
+  position: absolute; left: 150px; top: 0; bottom: 0; width: 820px;
+  display: flex; flex-direction: column; justify-content: center; gap: 34px;
+}
+/* soft navy scrim behind the copy so it reads over any frame of the video */
+body::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 75% at 22% 52%, rgba(6,8,12,.62), rgba(6,8,12,0) 70%);
+}
+.title { margin: 6px 0 -6px; }
+.title .wipe { margin-bottom: 4px; }
+
+.countdown { display: flex; flex-direction: column; gap: 10px; }
+.cd-label { font: 600 18px/1 "Archivo", sans-serif; letter-spacing: .32em; color: var(--muted); }
+.cd-value {
+  font: 800 96px/1 "Archivo", sans-serif; letter-spacing: .06em; color: var(--amber);
+  text-shadow: 0 0 26px rgba(240,176,92,.35), 0 4px 24px rgba(3,5,10,.9);
+}
+.cd-value.done { font-size: 54px; letter-spacing: .2em; color: var(--coral); animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .55; } }
+
+.sub { max-width: 720px; }
+
+.callout {
+  align-self: flex-start; padding: 18px 24px; border-left: 3px solid var(--coral);
+  background: linear-gradient(90deg, rgba(232,120,90,.12), rgba(17,20,28,.5) 60%, rgba(17,20,28,0));
+}
+.callout-label { font: 600 16px/1 "Archivo", sans-serif; letter-spacing: .32em; color: var(--coral); margin-bottom: 10px; }
+.callout-text { font: 500 24px/1.3 "Onest", sans-serif; }
+
+.foot { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.foot .url { color: var(--amber); }

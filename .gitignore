@@ -1,0 +1,6 @@
+release/
+*.streamDeckProfile
+kit/_system/twitch_auth.js
+kit/_system/update_state.json
+kit/_system/backup/
+kit/sponsors/
