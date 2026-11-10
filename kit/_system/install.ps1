@@ -225,7 +225,10 @@ if ((Resolve-Path $src).Path.TrimEnd('\') -ieq $dest.TrimEnd('\')) {
 
 # ---- game edition: Retail (the kit as it is) or WoW Forever (files from editions\forever laid over it)
 $edFile = Join-Path $dest '_system\edition.txt'
-if (-not $Edition) { try { $Edition = (Get-Content $edFile -ErrorAction Stop | Select-Object -First 1).Trim() } catch { $Edition = 'retail' } }
+if (-not $Edition) { try { $Edition = (Get-Content $edFile -ErrorAction Stop | Select-Object -First 1).Trim() } catch {
+  $Edition = 'retail'
+  if (-not $Quiet) { $a = Read-Host '    Which game do you stream? R = Retail, F = WoW Forever'; if ($a -match '^[Ff]') { $Edition = 'forever' } }
+} }
 $Edition = $(if ($Edition -match '^forever$') { 'forever' } else { 'retail' })
 function Set-Edition([string]$ed) {
   $edSrc = Join-Path $src 'editions\forever'

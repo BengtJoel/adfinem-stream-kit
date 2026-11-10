@@ -63,8 +63,8 @@ function New-Check($text, $sub, $x, $y, $checked) {
   $l.Tag = $c
   $l.Add_Click({ $this.Tag.Checked = -not $this.Tag.Checked })
   $c.Add_CheckedChanged({ $this.ForeColor = $(if ($this.Checked) { $cTEXT } else { $cMUTED }) })
-  $pages[1].Controls.Add($c)
-  $pages[1].Controls.Add($l)
+  $pages[2].Controls.Add($c)
+  $pages[2].Controls.Add($l)
   $c.BringToFront()
   return $c
 }
@@ -159,7 +159,7 @@ $t2 = New-Label $sub 98 54 500 22 $F_BOLD $cAMBER; $t2.BackColor = $cPANEL; $hea
 $form.Controls.Add($header)
 
 $pages = @()
-for ($i = 0; $i -lt 4; $i++) {
+for ($i = 0; $i -lt 6; $i++) {
   $p = New-Object System.Windows.Forms.Panel
   $p.Location = New-Object System.Drawing.Point(0, 92); $p.Size = New-Object System.Drawing.Size(760, 384); $p.BackColor = $cBG; $p.Visible = ($i -eq 0)
   $form.Controls.Add($p); $pages += $p
@@ -184,33 +184,7 @@ $p.Controls.Add((New-Label 'ON THIS PC' 40 146 300 20 $F_BOLD $cCORAL))
 $obsLbl = New-Label '' 40 172 460 24 $F_BOLD $cTEXT; $p.Controls.Add($obsLbl)
 $btnObs = New-Button 'Install OBS (free)' 520 166 200 $true; $p.Controls.Add($btnObs)
 $slLbl = New-Label '' 40 202 680 22 $F_SMALL $cMUTED; $p.Controls.Add($slLbl)
-$p.Controls.Add((New-Label 'WHICH WORLD OF WARCRAFT DO YOU STREAM?' 40 238 500 20 $F_BOLD $cCORAL))
-# two clickable cards: Retail (coral) / WoW Forever (gold + blue). Picks the intro, outro, loops, colours and Stream Deck icons.
-$script:edition = 'retail'
-try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower(); if ($e0 -eq 'forever') { $script:edition = 'forever' } } catch {}
-$cards = @{}
-function New-EditionCard($key, $title, $sub, $img, $x) {
-  $c = New-Object System.Windows.Forms.Panel
-  $c.Location = New-Object System.Drawing.Point($x, 264); $c.Size = New-Object System.Drawing.Size(330, 74)
-  $c.BackColor = $cPANEL; $c.Cursor = 'Hand'; $c.Tag = $key
-  $pb = New-Object System.Windows.Forms.PictureBox
-  $pb.Location = New-Object System.Drawing.Point(12, 11); $pb.Size = New-Object System.Drawing.Size(52, 52); $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
-  try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir $img)) } catch {}
-  $l1 = New-Label $title 76 14 240 24 $F_BOLD $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key
-  $l2 = New-Label $sub 76 38 245 20 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key
-  $c.Controls.AddRange(@($pb, $l1, $l2))
-  $c.Add_Paint({ param($s, $e)
-    $sel = ($s.Tag -eq $script:edition)
-    $col = if ($sel) { if ($s.Tag -eq 'forever') { C 217 164 65 } else { $cCORAL } } else { $cLINE }
-    $pen = New-Object System.Drawing.Pen($col, $(if ($sel) { 3 } else { 1 }))
-    $e.Graphics.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose() })
-  $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() } }
-  foreach ($ctl in @($c, $pb, $l1, $l2)) { $ctl.Add_Click($pick) }
-  $pages[0].Controls.Add($c); $cards[$key] = $c
-}
-New-EditionCard 'retail' 'Retail' 'Live servers - the coral AD FINEM look' 'emblem.png' 40
-New-EditionCard 'forever' 'WoW Forever' 'Gold and sapphire look, Forever emblem' 'forever-emblem.png' 390
-$p.Controls.Add((New-Label 'You can switch later by running the setup again. Next you pick your webcam and microphone.' 40 348 680 22 $F_SMALL $cMUTED))
+$p.Controls.Add((New-Label 'Next you pick your game, your webcam and microphone, and connect Twitch. If OBS is open, the setup asks you to close it before it changes anything.' 40 250 680 44 $F_BODY $cMUTED))
 function Update-ObsStatus {
   if ($script:obsExe) { $obsLbl.Text = "$([char]0x2713)  OBS Studio is installed"; $obsLbl.ForeColor = $cGREEN; $btnObs.Visible = $false }
   else { $obsLbl.Text = "$([char]0x2715)  OBS Studio is not installed"; $obsLbl.ForeColor = $cAMBER; $btnObs.Visible = $true }
@@ -227,8 +201,38 @@ $btnObs.Add_Click({
   $wt.Start()
 })
 
-# ------------------------------------------------------------------ page 2: camera + mic
+
+# ------------------------------------------------------------------ page 2: which WoW
 $p = $pages[1]
+$p.Controls.Add((New-Label 'Which World of Warcraft do you stream?' 40 20 680 34 (HeadFont 16)))
+$p.Controls.Add((New-Label 'This picks the intro, outro, transitions, alert animation, colours and Stream Deck icons. You can switch later by running the setup again.' 40 62 680 40 $F_BODY $cMUTED))
+$script:edition = 'retail'
+try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower(); if ($e0 -eq 'forever') { $script:edition = 'forever' } } catch {}
+$cards = @{}
+function New-EditionCard($key, $title, $sub, $img, $x) {
+  $c = New-Object System.Windows.Forms.Panel
+  $c.Location = New-Object System.Drawing.Point($x, 120); $c.Size = New-Object System.Drawing.Size(330, 230)
+  $c.BackColor = $cPANEL; $c.Cursor = 'Hand'; $c.Tag = $key
+  $pb = New-Object System.Windows.Forms.PictureBox
+  $pb.Location = New-Object System.Drawing.Point(115, 22); $pb.Size = New-Object System.Drawing.Size(100, 100); $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
+  try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir $img)) } catch {}
+  $l1 = New-Label $title 20 136 290 30 (HeadFont 14) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
+  $l2 = New-Label $sub 20 170 290 44 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
+  $c.Controls.AddRange(@($pb, $l1, $l2))
+  $c.Add_Paint({ param($s, $e)
+    $sel = ($s.Tag -eq $script:edition)
+    $col = if ($sel) { if ($s.Tag -eq 'forever') { C 217 164 65 } else { $cCORAL } } else { $cLINE }
+    $pen = New-Object System.Drawing.Pen($col, $(if ($sel) { 3 } else { 1 }))
+    $e.Graphics.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose() })
+  $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() } }
+  foreach ($ctl in @($c, $pb, $l1, $l2)) { $ctl.Add_Click($pick) }
+  $pages[1].Controls.Add($c); $cards[$key] = $c
+}
+New-EditionCard 'retail' 'RETAIL' 'Live servers. The coral AD FINEM look.' 'emblem.png' 40
+New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' 'forever-emblem.png' 390
+
+# ------------------------------------------------------------------ page 3: camera + mic
+$p = $pages[2]
 $p.Controls.Add((New-Label 'Webcam and microphone' 40 20 680 34 (HeadFont 16)))
 $p.Controls.Add((New-Label 'WEBCAM' 40 66 300 20 $F_BOLD $cCORAL))
 $cbCam = New-Object System.Windows.Forms.ComboBox; $cbCam.DropDownStyle = 'DropDown'
@@ -264,8 +268,84 @@ $ckLimit = New-Check 'Limiter' 'Stops shouting from clipping and hurting ears' 4
 $p.Controls.Add((New-Label 'Fine-tune later in OBS: in the Audio Mixer click the three dots next to Mic/Aux > Filters.' 40 312 680 40 $F_SMALL $cMUTED))
 $origFilters = (@('ns', 'gate', 'comp', 'limit') | Where-Object { & $has $_ }) -join ','
 
-# ------------------------------------------------------------------ page 3: installing
-$p = $pages[2]
+
+# ------------------------------------------------------------------ page 4: Twitch
+$p = $pages[3]
+$p.Controls.Add((New-Label 'Connect Twitch' 40 20 680 34 (HeadFont 16)))
+$p.Controls.Add((New-Label 'Lets the overlays show your follows, subs, gift subs, bits and raids as AD FINEM alerts, and count your follower or sub goal. You only do this once. Using StreamElements or Streamlabs alerts? Connect anyway for the goal - or skip.' 40 62 680 60 $F_BODY $cMUTED))
+$twState = New-Label '' 40 134 680 24 $F_BOLD $cTEXT; $p.Controls.Add($twState)
+$twCode = New-Label '' 40 166 680 56 (HeadFont 30) $cAMBER; $twCode.Visible = $false; $p.Controls.Add($twCode)
+$twHint = New-Label '' 40 228 680 40 $F_SMALL $cMUTED; $p.Controls.Add($twHint)
+$btnTw = New-Button 'Connect Twitch' 40 280 220 $true; $p.Controls.Add($btnTw)
+$btnTwOpen = New-Button 'Open twitch.tv/activate' 274 280 230; $btnTwOpen.Visible = $false; $p.Controls.Add($btnTwOpen)
+try { $btnTw.BackColor = C 145 70 255; $btnTw.ForeColor = $cTEXT } catch {}
+$twClient = ''
+try { if ((Get-Content (Join-Path $src 'overlays\twitch-app.js') -Raw) -match 'AF_TWITCH_CLIENT_ID\s*=\s*"([^"]+)"') { $twClient = $matches[1] } } catch {}
+$TW_SCOPES = 'moderator:read:followers channel:read:subscriptions bits:read'
+$script:twAuth = $null; $script:twDev = $null
+$script:twOld = $null
+try { $raw = Get-Content (Join-Path $dest '_system\twitch_auth.js') -Raw -ErrorAction Stop
+      if ($raw -match '"refresh_token"\s*:\s*"[^"]+"') { $script:twOld = $(if ($raw -match '"login"\s*:\s*"([^"]+)"') { $matches[1] } else { 'your channel' }) } } catch {}
+function Show-Tw($state, $msg = '') {
+  $twCode.Visible = $false; $btnTwOpen.Visible = $false; $btnTw.Visible = $true; $twHint.ForeColor = $cMUTED; $twState.ForeColor = $cTEXT
+  switch ($state) {
+    'wait'  { $twState.Text = 'On twitch.tv/activate, log in with your streaming account and enter this code:'; $twCode.Text = $script:twDev.user_code
+              $twCode.Visible = $true; $btnTwOpen.Visible = $true; $btnTw.Text = 'New code'; $twHint.Text = 'Waiting for Twitch... (the page opened in your browser)' }
+    'ok'    { $twState.Text = "$([char]0x2713)  Connected as $msg"; $twState.ForeColor = $cGREEN; $btnTw.Text = 'Use another account'; $twHint.Text = 'Alerts and the Twitch goal work in OBS while you stream.' }
+    default { $twState.ForeColor = $cTEXT
+              if ($script:twOld) { $twState.Text = "$([char]0x2713)  Already connected as $($script:twOld)"; $twState.ForeColor = $cGREEN; $btnTw.Text = 'Use another account'; $twHint.Text = 'Nothing to do here - click ' + $(if ($updating) { 'Update' } else { 'Install' }) + '.' }
+              else { $twState.Text = 'Not connected'; $btnTw.Text = 'Connect Twitch'; $twHint.Text = $(if ($msg) { $msg } else { 'Skip it if you like - you can connect later in Customize overlays > Alerts.' }) }
+              if ($msg) { $twHint.Text = $msg; $twHint.ForeColor = $cCORAL } }
+  }
+}
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch {}
+function Tw-Post($url, $body) {   # returns @{ ok; data } - Twitch answers 400 while it waits, so read the error body too
+  try { return @{ ok = $true; data = (Invoke-RestMethod -Method Post -Uri $url -Body $body -ContentType 'application/x-www-form-urlencoded' -TimeoutSec 15) } }
+  catch {
+    $d = $null; $txt = $null
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $txt = $_.ErrorDetails.Message }
+    else { try { $sr = New-Object IO.StreamReader($_.Exception.Response.GetResponseStream()); $txt = $sr.ReadToEnd(); $sr.Close() } catch {} }
+    if ($txt) { try { $d = ConvertFrom-Json $txt } catch {} }
+    return @{ ok = $false; data = $d; err = $_.Exception.Message }
+  }
+}
+$twTimer = New-Object System.Windows.Forms.Timer
+$twTimer.Add_Tick({
+  $d = $script:twDev
+  if (-not $d -or (Get-Date) -gt $d.until) { $this.Stop(); $script:twDev = $null; Show-Tw 'idle' 'The code expired - click Connect Twitch again.'; return }
+  $r = Tw-Post 'https://id.twitch.tv/oauth2/token' @{ client_id = $twClient; scopes = $TW_SCOPES; device_code = $d.device_code; grant_type = 'urn:ietf:params:oauth:grant-type:device_code' }
+  if ($r.ok -and $r.data.access_token) {
+    $this.Stop(); $script:twDev = $null
+    try { $v = Invoke-RestMethod -Uri 'https://id.twitch.tv/oauth2/validate' -Headers @{ Authorization = 'OAuth ' + $r.data.access_token } -TimeoutSec 15 } catch { $v = $null }
+    $now = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+    $script:twAuth = [ordered]@{ stamp = $now; login = $(if ($v) { $v.login } else { '' }); user_id = $(if ($v) { $v.user_id } else { '' })
+      access_token = $r.data.access_token; refresh_token = $r.data.refresh_token; expires_at = $now + [int64]$(if ($r.data.expires_in) { $r.data.expires_in } else { 3600 }) * 1000 }
+    $script:twOld = $script:twAuth.login
+    Show-Tw 'ok' $script:twAuth.login
+    return
+  }
+  $m = "$(if ($r.data) { $r.data.message })".ToLower()
+  if ($m -like '*slow_down*') { $this.Interval += 5000 }
+  elseif ($m -notlike '*authorization_pending*') { $this.Stop(); $script:twDev = $null; Show-Tw 'idle' ("Twitch: " + $(if ($r.data -and $r.data.message) { $r.data.message } else { $r.err })) }
+})
+$btnTw.Add_Click({
+  if (-not $twClient) { Show-Tw 'idle' 'The kit has no Twitch app set up - connect later in Customize overlays.'; return }
+  $twTimer.Stop()
+  $r = Tw-Post 'https://id.twitch.tv/oauth2/device' @{ client_id = $twClient; scopes = $TW_SCOPES }
+  if (-not $r.ok -or -not $r.data.device_code) { Show-Tw 'idle' ("Couldn't reach Twitch: " + $(if ($r.data -and $r.data.message) { $r.data.message } else { $r.err })); return }
+  $script:twDev = [pscustomobject]@{ device_code = $r.data.device_code; user_code = $r.data.user_code; uri = $r.data.verification_uri
+                                     until = (Get-Date).AddSeconds($(if ($r.data.expires_in) { $r.data.expires_in } else { 1800 })) }
+  $script:twOld = $null
+  Show-Tw 'wait'
+  try { Start-Process $script:twDev.uri } catch {}
+  $twTimer.Interval = [Math]::Max(2, [int]$(if ($r.data.interval) { $r.data.interval } else { 5 })) * 1000
+  $twTimer.Start()
+})
+$btnTwOpen.Add_Click({ if ($script:twDev) { try { Start-Process $script:twDev.uri } catch {} } })
+Show-Tw 'idle'
+
+# ------------------------------------------------------------------ page 5: installing
+$p = $pages[4]
 $stTitle = New-Label 'Setting up...' 40 20 680 34 (HeadFont 16); $p.Controls.Add($stTitle)
 $stLbl = New-Label 'Starting' 40 62 520 22 $F_BOLD $cAMBER; $p.Controls.Add($stLbl)
 $btnCloseObs = New-Button 'Close OBS for me' 540 56 180 $true; $btnCloseObs.Visible = $false; $p.Controls.Add($btnCloseObs)
@@ -278,8 +358,8 @@ $log.BackColor = $cPANEL; $log.ForeColor = $cMUTED; $log.BorderStyle = 'None'; $
 $p.Controls.Add($log)
 $btnCloseObs.Add_Click({ Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue | ForEach-Object { [void]$_.CloseMainWindow() } })
 
-# ------------------------------------------------------------------ page 4: done
-$p = $pages[3]
+# ------------------------------------------------------------------ page 6: done
+$p = $pages[5]
 $doneTitle = New-Label 'All set - to the end' 40 26 680 36 (HeadFont 18); $p.Controls.Add($doneTitle)
 $doneText = New-Label '' 40 72 680 110 $F_BODY $cMUTED; $p.Controls.Add($doneText)
 $btnOpenObs = New-Button 'Open OBS' 40 200 200 $true
@@ -295,20 +375,22 @@ $btnDeck.Add_Click({ $f = Join-Path $dest 'AD FINEM.streamDeckProfile'; if (Test
 $script:page = 0
 function Show-Page($n) {
   $script:page = $n
-  for ($i = 0; $i -lt 4; $i++) { $pages[$i].Visible = ($i -eq $n) }
-  $btnBack.Visible = ($n -eq 1)
-  $btnNext.Visible = ($n -lt 2) -or ($n -eq 3)
-  $btnNext.Text = @('Next', $(if ($updating) { 'Update' } else { 'Install' }), '', 'Finish')[$n]
-  $btnCancel.Visible = ($n -lt 2)
-  $dots.Text = @('Step 1 of 3', 'Step 2 of 3', 'Step 3 of 3', 'Done')[$n]
+  for ($i = 0; $i -lt 6; $i++) { $pages[$i].Visible = ($i -eq $n) }
+  $btnBack.Visible = ($n -ge 1 -and $n -le 3)
+  $btnNext.Visible = ($n -le 3) -or ($n -eq 5)
+  $btnNext.Text = @('Next', 'Next', 'Next', $(if ($updating) { 'Update' } else { 'Install' }), '', 'Finish')[$n]
+  $btnCancel.Visible = ($n -le 3)
+  $dots.Text = @('Step 1 of 5', 'Step 2 of 5', 'Step 3 of 5', 'Step 4 of 5', 'Step 5 of 5', 'Done')[$n]
 }
-$btnBack.Add_Click({ Show-Page 0 })
+$btnBack.Add_Click({ $twTimer.Stop(); if ($script:page -eq 3 -and $script:twDev) { $script:twDev = $null; Show-Tw 'idle' }; Show-Page ($script:page - 1) })
 $btnCancel.Add_Click({ $form.Close() })
 $btnNext.Add_Click({
   switch ($script:page) {
     0 { Show-Page 1 }
-    1 { Start-Install }
-    3 { $form.Close() }
+    1 { Show-Page 2 }
+    2 { Show-Page 3 }
+    3 { $twTimer.Stop(); Start-Install }
+    5 { $form.Close() }
   }
 })
 
@@ -317,7 +399,7 @@ $outFile = Join-Path $env:TEMP 'adfinem_setup_out.txt'
 $errFile = Join-Path $env:TEMP 'adfinem_setup_err.txt'
 
 function Start-Install {
-  Show-Page 2
+  Show-Page 4
   $args2 = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$(Join-Path $sysDir 'install.ps1')`"", '-Quiet')
   $cam = $cbCam.Text.Trim()
   if ($cam -and $cam -ne $KEEP -and $cam -ne $LATER) { $args2 += @('-Camera', "`"$($cam.Replace('"', ''))`"") }
@@ -327,6 +409,13 @@ function Start-Install {
   $fs = $f -join ','
   if ($fresh -or $fs -ne $origFilters) { $args2 += @('-MicFilters', $(if ($fs) { $fs } else { 'none' })) }
   $args2 += @('-Edition', $script:edition)
+  if ($script:twAuth) {   # the overlays read this file; the installer never overwrites it
+    try {
+      $tf = Join-Path $dest '_system\twitch_auth.js'
+      New-Item -ItemType Directory -Force -Path (Split-Path $tf) | Out-Null
+      [IO.File]::WriteAllText($tf, "window.AF_TWITCH_AUTH = " + ($script:twAuth | ConvertTo-Json -Compress) + ";`n", (New-Object Text.UTF8Encoding $false))
+    } catch {}
+  }
   Remove-Item $outFile, $errFile -ErrorAction SilentlyContinue
   $script:proc = Start-Process powershell -ArgumentList $args2 -WindowStyle Hidden -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
   $null = $script:proc.Handle   # keep the handle so ExitCode is readable later (PowerShell quirk)
@@ -372,7 +461,7 @@ $timer.Add_Tick({
       $doneText.Text = $lines -join "`r`n`r`n"
       $btnOpenObs.Visible = [bool]$script:obsExe
       $btnDeck.Visible = Test-Path (Join-Path $dest 'AD FINEM.streamDeckProfile')
-      Show-Page 3
+      Show-Page 5
     } else {
       $script:exitCode = 3
       $stTitle.Text = 'Something went wrong'; $stTitle.ForeColor = $cCORAL
