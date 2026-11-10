@@ -9,5 +9,6 @@
   --amber-rgb: 246, 217, 143;
   --hot: #fff6dc;
   --sapphire: #1E8FD0;
+  --edition: forever;
 }
 .chip { border-color: rgba(64, 160, 230, .22); }

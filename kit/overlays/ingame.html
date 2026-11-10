@@ -14,6 +14,9 @@
     showCam: on(I.showCamFrame),
     progress: on(I.showProgress) ? { label: AF_ESC(I.fallbackLabel || "MYTHIC"), value: AF_ESC(I.fallbackValue || ""), raid: AF_ESC(I.fallbackRaid || "") } : null,
     progressPos: I.progressPosition || "top-center",
+    pill: I.pill || "auto",
+    goal: { type: I.goalType === "subs" ? "subs" : "followers", target: Math.max(1, +I.goalTarget || 100),
+            label: AF_ESC(I.goalLabel || ""), autoNext: I.goalAutoNext !== false },
     raiderio: { enabled: on(I.raiderio), region: I.region || "eu", realm: I.realm || "dentarg", guild: I.guild || "Ad Finem",
                 raid: I.raid || "auto", raidName: "", rank: I.rank === "none" ? null : (I.rank || "realm"), refreshMinutes: 10 },
   };
@@ -49,6 +52,13 @@
   .progress .raid { color: var(--muted); letter-spacing: .16em; }
   .progress .rank { color: var(--text); letter-spacing: .14em; }
   .progress .rank b { color: var(--amber); font-weight: 600; }
+  .progress.goal .bar { position: relative; width: 150px; height: 6px; border-radius: 6px; background: rgba(203,213,235,.12); overflow: hidden; }
+  .progress.goal .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 6px;
+    background: var(--ember-grad); box-shadow: 0 0 10px rgba(var(--ember-rgb), .8); transition: width 1.2s cubic-bezier(.2,.8,.2,1); overflow: hidden; }
+  .progress.goal .bar i::after { content: ""; position: absolute; inset: 0; width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: shimmer 3.6s ease-in-out infinite 1s; }
+  .progress.goal .accent { min-width: 96px; text-align: right; }
+  .progress.goal.done .bar i { background: linear-gradient(90deg, var(--amber), #fff); }
   .progress.bump { animation: bump 2.4s ease-out; }
   @keyframes bump {
     0%   { box-shadow: 0 0 0 1px rgba(var(--amber-rgb), .9), 0 0 40px 6px rgba(var(--ember-rgb), .75); }
@@ -60,7 +70,17 @@
 (function () {
   const C = window.AF;
   const html = [];
-  if (C.progress) html.push(`
+  // which pill: "auto" = Twitch goal with the WoW Forever look, raid progress with Retail
+  const edition = getComputedStyle(document.documentElement).getPropertyValue("--edition").trim() || "retail";
+  C.goalMode = C.pill === "goal" || (C.pill === "auto" && edition === "forever");
+  if (C.progress && C.goalMode) html.push(`
+    <div class="chip progress goal fade ${C.progressPos || "top-center"}" style="--d:.2s">
+      <img src="img/adfinem-emblem-gradient.svg" alt="">
+      <span class="coral" data-k="label">${C.goal.label || (C.goal.type === "subs" ? "SUB GOAL" : "FOLLOWER GOAL")}</span>
+      <span class="bar"><i data-k="fill"></i></span>
+      <span class="accent mono" data-k="value">&ndash; / ${C.goal.target}</span>
+    </div>`);
+  else if (C.progress) html.push(`
     <div class="chip progress fade ${C.progressPos || "top-center"}" style="--d:.2s">
       <img src="img/adfinem-emblem-gradient.svg" alt="">
       <span class="coral" data-k="label">${C.progress.label}</span><span class="accent" data-k="value">${C.progress.value}</span>
@@ -76,6 +96,31 @@
     </div>`);
   }
   document.body.insertAdjacentHTML("beforeend", html.join(""));
+
+  /* ---------- Twitch goal (the alerts overlay keeps the numbers in af-goal) ---------- */
+  if (C.goalMode) {
+    const pill = document.querySelector(".progress.goal");
+    if (!pill) return;
+    const G = C.goal, $ = k => pill.querySelector(`[data-k="${k}"]`);
+    let last = null;
+    const show = (count) => {
+      let target = G.target;
+      if (G.autoNext && count >= target) target = G.target * (Math.floor(count / G.target) + 1);
+      const pct = Math.max(0, Math.min(100, count / target * 100));
+      $("value").textContent = `${count.toLocaleString("en-US")} / ${target.toLocaleString("en-US")}`;
+      $("fill").style.width = pct + "%";
+      pill.classList.toggle("done", count >= target);
+      if (last !== null && count > last) { pill.classList.remove("bump", "fade"); void pill.offsetWidth; pill.classList.add("bump"); }
+      last = count;
+    };
+    if (/[#&]s=/.test(location.hash)) { show(Math.round(G.target * 0.62)); return; }   // editor preview
+    const read = () => {
+      try { const d = JSON.parse(localStorage.getItem("af-goal") || "null"); const n = d && d[G.type];
+            if (typeof n === "number" && n !== last) show(n); } catch (e) {}
+    };
+    read(); setInterval(read, 3000); addEventListener("storage", read);
+    return;
+  }
 
   /* ---------- raider.io live progression ---------- */
   const R = C.raiderio, pill = document.querySelector(".progress");
@@ -99,7 +144,7 @@
     $("label").textContent = d.label; $("value").textContent = d.value; $("raid").textContent = d.raid;
     $("rank").hidden = $("ranksep").hidden = !d.rank;
     if (d.rank) $("rank").innerHTML = `<b>#${d.rank.toLocaleString("en-US")}</b> ${R.rank.toUpperCase()}`;
-    if (changed && render.ready) { pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
+    if (changed && render.ready) { pill.classList.remove("bump", "fade"); void pill.offsetWidth; pill.classList.add("bump"); }
     render.ready = true;
   }
 

@@ -122,9 +122,19 @@
     <div class="row"><div><label>Cam width</label><input type="number" data-k="ingame.camWidth"></div>
                      <div><label>Cam height</label><input type="number" data-k="ingame.camHeight"></div></div>
     <div class="hint">In OBS, put your webcam at exactly these numbers (right-click the webcam → Transform → Edit Transform).</div>
-    <label class="check"><input type="checkbox" data-k="ingame.showProgress"> Show the raid progress pill</label>
-    <label>Pill position</label>
-    <select data-k="ingame.progressPosition"><option value="top-center">Top centre</option><option value="top-left">Top left</option><option value="top-right">Top right</option></select>
+    <label class="check"><input type="checkbox" data-k="ingame.showProgress"> Show the pill at the top</label>
+    <div class="row"><div><label>The pill shows</label>
+      <select data-k="ingame.pill"><option value="auto">Auto (by game)</option><option value="raiderio">Raid progress</option><option value="goal">Twitch goal</option></select></div>
+      <div><label>Pill position</label>
+      <select data-k="ingame.progressPosition"><option value="top-center">Top centre</option><option value="top-left">Top left</option><option value="top-right">Top right</option></select></div></div>
+    <div class="hint">Auto = raid progress with the Retail look, Twitch goal with the WoW Forever look.</div>
+    <label style="margin-top:18px">TWITCH GOAL</label>
+    <div class="row"><div><label>Count</label><select data-k="ingame.goalType"><option value="followers">Followers</option><option value="subs">Subscribers</option></select></div>
+                     <div><label>Goal</label><input type="number" min="1" data-k="ingame.goalTarget"></div></div>
+    <label>Text on the pill (empty = FOLLOWER GOAL / SUB GOAL)</label><input type="text" data-k="ingame.goalLabel" placeholder="FOLLOWER GOAL">
+    <label class="check"><input type="checkbox" data-k="ingame.goalAutoNext"> When the goal is reached, set the next one by itself (500 → 1000 → 1500 ...)</label>
+    <div class="hint">Counts live from your Twitch channel (connect Twitch on the Alerts tab - needed even if you use StreamElements or Streamlabs alerts). Subscriber goals need Affiliate or Partner.</div>
+    <label style="margin-top:18px">RAID PROGRESS (raider.io)</label>
     <label class="check"><input type="checkbox" data-k="ingame.raiderio"> Live progress from raider.io</label>
     <div class="row"><div><label>Raid (raider.io slug)</label><input type="text" data-k="ingame.raid"></div>
                      <div><label>Show rank</label><select data-k="ingame.rank"><option value="realm">Realm</option><option value="region">Region</option><option value="world">World</option><option value="none">No rank</option></select></div></div>
@@ -227,6 +237,8 @@ const ALERT_DEFAULTS = { mode: "twitch", url: "", follows: true, subs: true, gif
   giftText: "GIFTED {amount} SUBS", bitsText: "CHEERED {amount} BITS", raidText: "RAIDING WITH {amount}",
   duration: 7, volume: 70, sound: true, position: "center" };
 if (window.AF_SETTINGS) window.AF_SETTINGS.alerts = Object.assign({}, ALERT_DEFAULTS, window.AF_SETTINGS.alerts || {});
+const INGAME_DEFAULTS = { pill: "auto", goalType: "followers", goalTarget: 100, goalLabel: "", goalAutoNext: true };
+if (window.AF_SETTINGS) window.AF_SETTINGS.ingame = Object.assign({}, INGAME_DEFAULTS, window.AF_SETTINGS.ingame || {});
 const SPONSOR_DEFAULTS = { enabled: false, heading: "PARTNERED WITH", showHeading: true, style: "card", position: "bottom-right",
   scale: 100, margin: 32, mode: "rotate", seconds: 12, everyMinutes: 10, showSeconds: 30, showTimer: true,
   scenes: { starting: true, ingame: true, brb: true, ending: true }, items: [] };

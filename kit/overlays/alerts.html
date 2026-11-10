@@ -54,9 +54,10 @@
       document.body.appendChild(f);
       if (PREVIEW) status("Your StreamElements / Streamlabs alerts run here. Use their Test buttons to see them.");
     } else if (PREVIEW) status("Paste your StreamElements or Streamlabs alert URL on the left.");
-    return;
   }
-  if (mode === "off") { if (PREVIEW) status("Alerts are off."); return; }
+  if (mode === "off" && PREVIEW) status("Alerts are off.");
+  // with StreamElements/Streamlabs or alerts off, this page still keeps the Twitch goal numbers up to date
+  const builtIn = mode !== "external" && mode !== "off";
 
   /* ---------------- built-in alerts ---------------- */
   const T = {
@@ -105,7 +106,7 @@
 
   if (PREVIEW) {               // editor preview: show a sample and loop it, no Twitch connection
     const h = location.hash.match(/[#&]demo=(\w+)/);
-    AF_TEST(h ? h[1] : "follow");
+    if (builtIn) AF_TEST(h ? h[1] : "follow");
     return;
   }
 
@@ -123,13 +124,13 @@
     tag.onerror = () => { tag.remove(); if (lastTest === null) lastTest = 0; };
     document.head.appendChild(tag);
   }
-  pollTest(); setInterval(pollTest, 3000);
+  if (builtIn) { pollTest(); setInterval(pollTest, 3000); }
 
   /* ---------------- Twitch: tokens ---------------- */
   const CLIENT = window.AF_TWITCH_CLIENT_ID;
   const FILE = window.AF_TWITCH_AUTH;
   const LS = "af_twitch_v1";
-  if (!CLIENT) return log("No Twitch Client ID in twitch-app.js - built-in alerts are off.");
+  if (!CLIENT) return log("No Twitch Client ID in twitch-app.js - built-in alerts and the Twitch goal are off.");
   if (!FILE || !FILE.refresh_token) return log("Not connected to Twitch. Use Customize overlays > Alerts > Connect Twitch.");
 
   // Refresh tokens can be used once, so the newest one lives in this browser's storage.
@@ -189,7 +190,31 @@
   if (on("raids")) want.push(["channel.raid", "1", { to_broadcaster_user_id: uid }]);
   const minBits = Number(A.minBits) || 1, minRaid = Number(A.minRaid) || 1;
 
+  /* ---------------- Twitch goal numbers for the in-game pill (kept in localStorage "af-goal") ---------------- */
+  const GOAL = "af-goal";
+  function goalSave(part) {
+    let d = {}; try { d = JSON.parse(localStorage.getItem(GOAL) || "{}") || {}; } catch (e) {}
+    try { localStorage.setItem(GOAL, JSON.stringify(Object.assign(d, part, { uid, t: Date.now() }))); } catch (e) {}
+  }
+  async function goalUpdate() {
+    try {
+      const part = {};
+      const f = await helix("GET", "channels/followers?first=1&broadcaster_id=" + encodeURIComponent(uid));
+      if (f.status === 200 && typeof f.json.total === "number") part.followers = f.json.total;
+      const sb = await helix("GET", "subscriptions?first=1&broadcaster_id=" + encodeURIComponent(uid));
+      if (sb.status === 200 && typeof sb.json.total === "number") part.subs = sb.json.total;
+      if (Object.keys(part).length) goalSave(part);
+    } catch (e) { log("goal: " + e.message); }
+  }
+  let goalSoon = null;
+  const goalLater = () => { clearTimeout(goalSoon); goalSoon = setTimeout(goalUpdate, 15000); };
+
   function handle(type, e) {
+    if (type === "channel.follow") {      // count it right away, Twitch's total catches up a bit later
+      try { const d = JSON.parse(localStorage.getItem(GOAL) || "{}"); if (typeof d.followers === "number") goalSave({ followers: d.followers + 1 }); } catch (x) {}
+    }
+    if (/^channel\.subscri/.test(type)) goalLater();
+    if (!builtIn) return;
     switch (type) {
       case "channel.follow": return push({ kind: "follow", name: e.user_name });
       case "channel.subscribe": if (e.is_gift) return; return push({ kind: "sub", name: e.user_name });
@@ -248,6 +273,7 @@
         const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + tok.access_token } }).then(r => r.json());
         tok.user_id = v.user_id; keep(); location.reload(); return;
       }
+      goalUpdate(); setInterval(goalUpdate, 60 * 1000);
       open();
     } catch (e) { log(e.message); setTimeout(() => location.reload(), 5 * 60 * 1000); }
   })();

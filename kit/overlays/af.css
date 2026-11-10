@@ -18,6 +18,7 @@
   --ember-rgb: 238, 154, 91;
   --amber-rgb: 240, 176, 92;
   --hot: #fff3e6;
+  --edition: retail;
   --ember-grad: linear-gradient(90deg, var(--coral), var(--amber));
   --glow: 0 0 14px rgba(var(--ember-rgb), .65), 0 0 36px rgba(var(--coral-rgb), .25);
 }
