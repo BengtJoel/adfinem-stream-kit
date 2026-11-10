@@ -1,14 +1,21 @@
 # AD FINEM Stream Kit - installer (Windows PowerShell 5.1+)
 # Started by the Setup .exe (or INSTALL.bat). Safe to run again - also used for updates:
 # your settings, sponsors, Twitch connection and the webcam/game/audio you picked in OBS are kept.
-param([switch]$Quiet)
+param(
+  [switch]$Quiet,                 # no questions (updates, and the graphical setup)
+  [string]$Camera = $null,        # webcam name as Windows shows it; '' = leave as it is
+  [string]$Mic = $null,           # 'default', a Windows audio endpoint id, or '' = leave as it is
+  [string]$MicFilters = $null     # e.g. 'ns,gate,comp,limit'; 'none' = no kit filters; '' = leave as it is
+)
 
 $ErrorActionPreference = 'Stop'
 Remove-TypeData System.Array -ErrorAction SilentlyContinue      # PS 5.1: keeps arrays as arrays in ConvertTo-Json
-$Host.UI.RawUI.WindowTitle = 'AD FINEM Stream Kit - Installer'
+try { $Host.UI.RawUI.WindowTitle = 'AD FINEM Stream Kit - Installer' } catch {}
 
-function Say($text, $color = 'Gray') { Write-Host $text -ForegroundColor $color }
-function Step($n, $text) { Write-Host ''; Write-Host "[$n] $text" -ForegroundColor DarkYellow }
+# In -Quiet mode (graphical setup, updates) everything goes to stdout as @@ lines the setup window reads.
+function Say($text, $color = 'Gray') { if ($Quiet) { Write-Output ("@@LOG " + $text.Trim()) } else { Write-Host $text -ForegroundColor $color } }
+function Step($n, $text) { if ($Quiet) { Write-Output "@@STEP $n $text" } else { Write-Host ''; Write-Host "[$n] $text" -ForegroundColor DarkYellow } }
+if ($Quiet) { try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {} }
 
 # Update = new kit scenes, but keep what the streamer set up in OBS themselves.
 function Set-Prop($obj, $name, $value) { $obj | Add-Member -NotePropertyName $name -NotePropertyValue $value -Force }
@@ -80,6 +87,55 @@ Write-Host '     AD FINEM  -  STREAM KIT INSTALLER'           -ForegroundColor W
 Write-Host '  ===============================================' -ForegroundColor DarkYellow
 Say "  Installs to: $dest"
 
+# The camera and microphone picked in the setup window, plus the mic clean-up filters.
+function New-Filter($name, $id, $vid, $settings) {
+  [pscustomobject]@{ name = $name; uuid = [guid]::NewGuid().ToString(); id = $id; versioned_id = $vid; settings = $settings
+    mixers = 0; sync = 0; flags = 0; volume = 1.0; balance = 0.5; enabled = $true; muted = $false
+    'push-to-mute' = $false; 'push-to-mute-delay' = 0; 'push-to-talk' = $false; 'push-to-talk-delay' = 0
+    hotkeys = [pscustomobject]@{}; deinterlace_mode = 0; deinterlace_field_order = 0; monitoring_type = 0
+    private_settings = [pscustomobject]@{} }
+}
+function Set-Devices([string]$json) {
+  $c = $json | ConvertFrom-Json
+  if ($Camera) {
+    $cam = @($c.sources) | Where-Object { $_.id -eq 'dshow_input' } | Select-Object -First 1
+    if ($cam) {
+      $enc = $Camera.Replace('#', '#22').Replace(':', '#3A')
+      if (-not $cam.settings) { Set-Prop $cam 'settings' ([pscustomobject]@{}) }
+      Set-Prop $cam.settings 'video_device_id' ($enc + ':')
+      Set-Prop $cam.settings 'active' $true
+      Say "    Webcam: $Camera" 'Green'
+    }
+  }
+  if ($Mic -or $MicFilters) {
+    $aux = $c.AuxAudioDevice1
+    if ($aux) {
+      if ($Mic) { Set-Prop $aux.settings 'device_id' $Mic; Say "    Microphone: $(if ($Mic -eq 'default') { 'Windows default' } else { $Mic })" 'Green' }
+      if ($MicFilters) {
+        $kitIds = @('noise_suppress_filter', 'noise_gate_filter', 'compressor_filter', 'limiter_filter')
+        $keep = @(@($aux.filters) | Where-Object { $_ -and $kitIds -notcontains $_.id })
+        $list = @()
+        $want = $MicFilters.Split(',') | ForEach-Object { $_.Trim() }
+        if ($want -contains 'ns')    { $list += New-Filter 'Noise Suppression' 'noise_suppress_filter' 'noise_suppress_filter_v2' ([pscustomobject]@{ method = 'rnnoise'; suppress_level = -30 }) }
+        if ($want -contains 'gate')  { $list += New-Filter 'Noise Gate' 'noise_gate_filter' 'noise_gate_filter' ([pscustomobject]@{ open_threshold = -26.0; close_threshold = -32.0; attack_time = 25; hold_time = 200; release_time = 150 }) }
+        if ($want -contains 'comp')  { $list += New-Filter 'Compressor' 'compressor_filter' 'compressor_filter' ([pscustomobject]@{ ratio = 4.0; threshold = -18.0; attack_time = 6; release_time = 60; output_gain = 0.0 }) }
+        if ($want -contains 'limit') { $list += New-Filter 'Limiter' 'limiter_filter' 'limiter_filter' ([pscustomobject]@{ threshold = -3.0; release_time = 60 }) }
+        Set-Prop $aux 'filters' (@($list) + $keep)
+        Say "    Mic filters: $(if ($list.Count) { ($list | ForEach-Object { $_.name }) -join ', ' } else { 'none' })" 'Green'
+      }
+    }
+  }
+  # the placeholder picture sits exactly where the webcam is
+  foreach ($s in @($c.sources)) {
+    if ($s.id -ne 'scene') { continue }
+    $items = @($s.settings.items)
+    $ph = $items | Where-Object { $_.name -eq 'AF Webcam Placeholder' } | Select-Object -First 1
+    $wc = $items | Where-Object { $n = $_.name; @($c.sources) | Where-Object { $_.name -eq $n -and $_.id -eq 'dshow_input' } } | Select-Object -First 1
+    if ($ph -and $wc) { foreach ($k in 'pos', 'scale', 'rot', 'bounds', 'bounds_type', 'bounds_align', 'align') { if ($wc.PSObject.Properties[$k]) { Set-Prop $ph $k $wc.$k } } }
+  }
+  return ($c | ConvertTo-Json -Depth 100)
+}
+
 # ---------------------------------------------------------------- 1. OBS
 Step 1 'Checking for OBS Studio'
 $obsExe = $null
@@ -120,7 +176,7 @@ Step 2 'Making sure OBS is closed'
 $told = $false
 while (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) {
   if ($Quiet) {
-    if (-not $told) { Say '    OBS is open. Please close OBS - the update continues by itself.' 'Yellow'; $told = $true }
+    if (-not $told) { Say '    OBS is open. Please close OBS - the update continues by itself.' 'Yellow'; Write-Output '@@OBS_OPEN'; $told = $true }
     Start-Sleep -Seconds 2
   } else {
     Say '    OBS is open. Please close OBS, then press Enter here.' 'Yellow'
@@ -128,6 +184,7 @@ while (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) {
   }
 }
 Say '    OK' 'Green'
+if ($told) { Write-Output '@@OBS_CLOSED' }
 
 # ---------------------------------------------------------------- 3. copy the kit
 Step 3 'Copying the kit'
@@ -154,6 +211,7 @@ Step 4 'Adding the "AD FINEM" scene collection to OBS'
 $scenesDir = Join-Path $env:APPDATA 'obs-studio\basic\scenes'
 New-Item -ItemType Directory -Force -Path $scenesDir | Out-Null
 $target = Join-Path $scenesDir 'AD_FINEM.json'
+$freshCollection = -not (Test-Path $target)
 if (Test-Path $target) {
   $bk = Join-Path $dest '_system\backup'
   New-Item -ItemType Directory -Force -Path $bk | Out-Null
@@ -169,6 +227,8 @@ if (Test-Path $target) {
     if ($merged) { $json = $merged; Say '    Kept your webcam, game capture, audio devices and your own scenes.' 'Green' }
   } catch { Say "    (Could not keep your old OBS picks: $($_.Exception.Message) - set webcam/game again.)" 'Yellow' }
 }
+if ($freshCollection -and -not $MicFilters) { $MicFilters = 'ns,gate,comp,limit' }   # new setups get a clean mic
+try { $json = Set-Devices $json } catch { Say "    (Could not set camera/mic: $($_.Exception.Message) - pick them in OBS.)" 'Yellow' }
 [IO.File]::WriteAllText($target, $json, (New-Object Text.UTF8Encoding $false))
 Say "    Written: $target" 'Green'
 

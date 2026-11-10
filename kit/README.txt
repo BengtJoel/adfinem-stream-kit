@@ -2,15 +2,14 @@ AD FINEM STREAM KIT
 =====================================================================
 
 INSTALL (2 minutes)
-  1. Unzip this folder (right-click the .zip > Extract All).
-  2. Double-click INSTALL.bat and follow the steps.
-     It installs OBS if you don't have it, copies the kit to
-     Documents\AD FINEM Stream Kit and adds the "AD FINEM" scenes to OBS.
+  1. Run AD-FINEM-Stream-Kit-Setup.exe (or INSTALL.bat in this folder).
+  2. Pick your webcam and microphone, and which mic clean-up to use:
+     noise suppression, noise gate, compressor and limiter (all on by
+     default). The setup puts everything into OBS for you.
   3. Open OBS > menu Scene Collection > AD FINEM.
   4. Settings > Video: Base and Output resolution = 1920x1080.
-  5. Scene "AF - In-Game": double-click "Webcam (pick your camera)"
-     and choose your camera.
-  That's it. The stinger transition is already set up.
+  Your webcam shows the AD FINEM picture until the camera is on.
+  Fine-tune the mic later: Audio Mixer > three dots next to Mic/Aux > Filters.
 
 
 CHANGE THE TEXTS

@@ -8,7 +8,7 @@ Everything an Ad Finem streamer needs, set up in OBS in about a minute.
 
 - **OBS scenes** - Starting Soon, In-Game, BRB and Ending, with the AD FINEM animated background
 - **Transitions** - the cinematic intro plays when you go to In-Game, the outro when you go to Ending, and a logo stinger for every other switch
-- **In-game overlay** - webcam frame with your name tag and live raid progress from raider.io
+- **In-game overlay** - webcam frame with your name tag (shows the AD FINEM picture when the camera is off) and live raid progress from raider.io
 - **Alerts** - follows, subs, gift subs, bits and raids with the AD FINEM animation and sound (or use StreamElements / Streamlabs)
 - **Sponsors** - rotating sponsor cards or banners with your logos
 - **Overlay editor** - change every text, alert and sponsor without coding; OBS updates by itself
@@ -19,8 +19,9 @@ Everything an Ad Finem streamer needs, set up in OBS in about a minute.
 
 1. Download `AD-FINEM-Stream-Kit-Setup.exe` from [Releases](https://github.com/BengtJoel/adfinem-stream-kit/releases/latest) and run it.
    Windows may warn about an unknown publisher - click *More info* > *Run anyway*.
-2. Open OBS > Scene Collection > **AD FINEM**.
-3. In the In-Game scene, pick your webcam and the WoW window.
+2. Pick your webcam and microphone in the setup window. It also cleans up your mic
+   (noise suppression, noise gate, compressor, limiter) and sets everything up in OBS.
+3. Open OBS > Scene Collection > **AD FINEM**, and pick the WoW window in the In-Game scene.
 
 Updates are offered automatically when OBS starts. Your texts, sponsors, Twitch connection and OBS picks are kept.
 

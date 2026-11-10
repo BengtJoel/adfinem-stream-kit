@@ -25,36 +25,31 @@ VIAddVersionKey "LegalCopyright" "Ad Finem"
 !include "MUI2.nsh"
 !define MUI_ICON "kit\_system\adfinem.ico"
 !define MUI_UNICON "kit\_system\adfinem.ico"
-!define MUI_WELCOMEPAGE_TITLE "AD FINEM Stream Kit ${VERSION}"
-!define MUI_WELCOMEPAGE_TEXT "This sets up the AD FINEM stream package:$\r$\n$\r$\n  - OBS scenes, overlays, intro/outro and stinger$\r$\n  - Alerts, sponsors and live raid progress$\r$\n  - The overlay editor and a Stream Deck page$\r$\n$\r$\nUpdating? Your texts, sponsors, Twitch connection, webcam and game capture are kept.$\r$\n$\r$\nA window shows the steps. If OBS is open it asks you to close it."
-!define MUI_FINISHPAGE_TITLE "Ready - to the end"
-!define MUI_FINISHPAGE_TEXT "Open OBS and pick Scene Collection > AD FINEM.$\r$\n$\r$\nChange texts, alerts and sponsors with $\"AD FINEM - Customize overlays$\" on your desktop. Updates are offered automatically."
-!define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Open the overlay editor"
-!define MUI_FINISHPAGE_RUN_FUNCTION OpenEditor
-!insertmacro MUI_PAGE_WELCOME
+!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "Preparing the setup"
+!define MUI_INSTFILESPAGE_FINISHHEADER_SUBTEXT ""
 !insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "English"
-
-Function OpenEditor
-  Exec '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "$DOCUMENTS\AD FINEM Stream Kit\_system\editor.ps1"'
-FunctionEnd
+AutoCloseWindow true
+ShowInstDetails nevershow
 
 Section "Install"
+  DetailPrint "Unpacking the AD FINEM Stream Kit..."
   InitPluginsDir
   SetOutPath "$PLUGINSDIR\kit"
   File /r "kit\*.*"
-  DetailPrint "Setting up the kit and OBS (see the window)..."
-  StrCpy $1 ""
-  IfSilent 0 +2
-    StrCpy $1 "-Quiet"
-  ExecWait '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\kit\_system\install.ps1" $1' $0
-  IntCmp $0 0 setup_ok
-    MessageBox MB_ICONEXCLAMATION "The setup step reported a problem (code $0). Run INSTALL.bat in Documents\AD FINEM Stream Kit to see what happened."
-  setup_ok:
+  HideWindow
+  ; the graphical setup: 0 = installed, 2 = cancelled, 3 = failed (already shown), other = could not start
+  nsExec::Exec '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "$PLUGINSDIR\kit\_system\setup\setup-gui.ps1"'
+  Pop $0
+  StrCmp $0 "0" registered
+  StrCmp $0 "2" done
+  StrCmp $0 "3" done
+  ; fallback: the text installer in a console window
+  ExecWait '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\kit\_system\install.ps1"' $0
+  StrCmp $0 "0" registered done
+  registered:
   SetOutPath "$INSTDIR"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   File "kit\_system\adfinem.ico"
@@ -67,6 +62,7 @@ Section "Install"
   WriteRegStr HKCU "${UNKEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegDWORD HKCU "${UNKEY}" "NoModify" 1
   WriteRegDWORD HKCU "${UNKEY}" "NoRepair" 1
+  done:
 SectionEnd
 
 Section "Uninstall"

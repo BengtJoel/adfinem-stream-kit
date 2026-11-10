@@ -8,6 +8,7 @@ Started by install-linux.sh. Safe to run again: your settings.js is kept.
   4. adds an "AD FINEM - Customize overlays" launcher to your app menu
 """
 import datetime
+import uuid
 import json
 import os
 import shutil
@@ -153,6 +154,35 @@ def merge(new, old):
     return new
 
 
+def kit_filters():
+    """Noise suppression, gate, compressor and limiter for a new mic (same as the Windows setup)."""
+    def f(name, fid, vid, settings):
+        return {"name": name, "uuid": str(uuid.uuid4()), "id": fid, "versioned_id": vid, "settings": settings,
+                "mixers": 0, "sync": 0, "flags": 0, "volume": 1.0, "balance": 0.5, "enabled": True, "muted": False,
+                "push-to-mute": False, "push-to-mute-delay": 0, "push-to-talk": False, "push-to-talk-delay": 0,
+                "hotkeys": {}, "deinterlace_mode": 0, "deinterlace_field_order": 0, "monitoring_type": 0, "private_settings": {}}
+    return [f("Noise Suppression", "noise_suppress_filter", "noise_suppress_filter_v2", {"method": "rnnoise", "suppress_level": -30}),
+            f("Noise Gate", "noise_gate_filter", "noise_gate_filter", {"open_threshold": -26.0, "close_threshold": -32.0, "attack_time": 25, "hold_time": 200, "release_time": 150}),
+            f("Compressor", "compressor_filter", "compressor_filter", {"ratio": 4.0, "threshold": -18.0, "attack_time": 6, "release_time": 60, "output_gain": 0.0}),
+            f("Limiter", "limiter_filter", "limiter_filter", {"threshold": -3.0, "release_time": 60})]
+
+
+def sync_placeholder(c):
+    """The webcam placeholder picture sits exactly where the webcam is."""
+    cams = {s["name"] for s in c["sources"] if s.get("id") in ("dshow_input", "v4l2_input", "pipewire-camera-source", "av_capture_input")}
+    for s in c["sources"]:
+        if s.get("id") != "scene":
+            continue
+        items = s["settings"].get("items", [])
+        ph = next((i for i in items if i["name"] == "AF Webcam Placeholder"), None)
+        wc = next((i for i in items if i["name"] in cams), None)
+        if ph and wc:
+            for k in ("pos", "scale", "rot", "bounds", "bounds_type", "bounds_align", "align"):
+                if k in wc:
+                    ph[k] = wc[k]
+    return c
+
+
 def main():
     docs = documents_dir()
     dest = os.path.join(docs, "AD FINEM Stream Kit")
@@ -237,6 +267,10 @@ def main():
             except Exception as e:
                 say(f"    (Could not keep your old OBS picks: {e} - set webcam/game again.)", YELLOW)
                 out = collection
+        else:
+            out["AuxAudioDevice1"]["filters"] = kit_filters()
+            say("    Mic: noise suppression, noise gate, compressor and limiter added.", GREEN)
+        out = sync_placeholder(out)
         with open(target, "w", encoding="utf-8") as f:
             json.dump(out, f, indent=2, ensure_ascii=False)
         say(f"    Written: {target}", GREEN)
