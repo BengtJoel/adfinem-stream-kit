@@ -6,7 +6,7 @@ param(
   [string]$Camera = $null,        # webcam name as Windows shows it; '' = leave as it is
   [string]$Mic = $null,           # 'default', a Windows audio endpoint id, or '' = leave as it is
   [string]$MicFilters = $null,    # e.g. 'ns,gate,comp,limit'; 'none' = no kit filters; '' = leave as it is
-  [string]$Edition = $null        # 'retail' or 'forever' (WoW Forever look); '' = keep the one installed
+  [string]$Edition = $null        # 'retail', 'forever' (WoW Forever look) or 'both' (two OBS scene collections); '' = keep the one installed
 )
 
 $ErrorActionPreference = 'Stop'
@@ -227,9 +227,9 @@ if ((Resolve-Path $src).Path.TrimEnd('\') -ieq $dest.TrimEnd('\')) {
 $edFile = Join-Path $dest '_system\edition.txt'
 if (-not $Edition) { try { $Edition = (Get-Content $edFile -ErrorAction Stop | Select-Object -First 1).Trim() } catch {
   $Edition = 'retail'
-  if (-not $Quiet) { $a = Read-Host '    Which game do you stream? R = Retail, F = WoW Forever'; if ($a -match '^[Ff]') { $Edition = 'forever' } }
+  if (-not $Quiet) { $a = Read-Host '    Which game do you stream? R = Retail, F = WoW Forever, B = both'; if ($a -match '^[Ff]') { $Edition = 'forever' } elseif ($a -match '^[Bb]') { $Edition = 'both' } }
 } }
-$Edition = $(if ($Edition -match '^forever$') { 'forever' } else { 'retail' })
+$Edition = $(if ($Edition -match '^forever$') { 'forever' } elseif ($Edition -match '^both$') { 'both' } else { 'retail' })
 function Set-Edition([string]$ed) {
   $edSrc = Join-Path $src 'editions\forever'
   if (-not (Test-Path $edSrc)) { $edSrc = Join-Path $dest 'editions\forever' }
@@ -252,6 +252,20 @@ function Set-Edition([string]$ed) {
     }
   }
 }
+# Retail + Forever side by side: "<overlay>-forever.html" copies that load the Forever colours, emblem and alert
+function New-ForeverOverlays {
+  $ov = Join-Path $dest 'overlays'
+  foreach ($n in 'starting', 'brb', 'ending', 'ingame', 'alerts', 'sponsors') {
+    $f = Join-Path $ov "$n.html"; if (-not (Test-Path $f)) { continue }
+    $t = [IO.File]::ReadAllText($f, (New-Object Text.UTF8Encoding $false))
+    $t = $t.Replace('<link rel="stylesheet" href="edition.css">', '<link rel="stylesheet" href="edition.css"><link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
+    $t = $t.Replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
+    $t = $t.Replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
+    $t = $t.Replace('"../videos/alert_1x1_alpha.webm"', '"../editions/forever/videos/alert_1x1_alpha.webm"')
+    [IO.File]::WriteAllText((Join-Path $ov "$n-forever.html"), $t, (New-Object Text.UTF8Encoding $false))
+  }
+}
+
 # the kit's standard texts mention Mythic raiding - swap them for neutral ones with WoW Forever
 # (only texts still exactly as shipped; anything the streamer wrote themselves is left alone)
 function Set-EditionTexts([string]$ed) {
@@ -267,51 +281,67 @@ function Set-EditionTexts([string]$ed) {
   if ($txt -ne $orig) { [IO.File]::WriteAllText($sf, $txt, $utf8); Say '    Standard texts set for this game (your own texts were kept).' 'Gray' }
 }
 try {
-  Set-Edition $Edition
-  Set-EditionTexts $Edition
+  # both: the kit itself stays Retail, the Forever collection uses its own copies (below);
+  # the texts are shared, so they get the neutral (Forever) wording
+  Set-Edition $(if ($Edition -eq 'both') { 'retail' } else { $Edition })
+  Set-EditionTexts $(if ($Edition -eq 'retail') { 'retail' } else { 'forever' })
+  if ($Edition -eq 'both') { New-ForeverOverlays }
   New-Item -ItemType Directory -Force -Path (Split-Path $edFile) | Out-Null
   Set-Content -Path $edFile -Value $Edition -Encoding ASCII
-  Say "    Look: $(if ($Edition -eq 'forever') { 'WoW Forever (gold + sapphire)' } else { 'Retail' })" 'Green'
+  Say "    Look: $(@{ forever = 'WoW Forever (gold + sapphire)'; both = 'Retail AND WoW Forever (two scene collections)'; retail = 'Retail' }[$Edition])" 'Green'
 } catch { Say "    (Could not switch the look: $($_.Exception.Message))" 'Yellow' }
 
 $oldEditor = Join-Path $dest 'Customize overlays.html'          # replaced by "Customize overlays.bat"
 if (Test-Path $oldEditor) { Remove-Item $oldEditor -Force }
 
 # ---------------------------------------------------------------- 4. OBS scene collection
-Step 4 'Adding the "AD FINEM" scene collection to OBS'
+Step 4 'Adding the AD FINEM scene collection to OBS'
 $scenesDir = Join-Path $env:APPDATA 'obs-studio\basic\scenes'
 New-Item -ItemType Directory -Force -Path $scenesDir | Out-Null
-$target = Join-Path $scenesDir 'AD_FINEM.json'
-$freshCollection = -not (Test-Path $target)
-if (Test-Path $target) {
-  $bk = Join-Path $dest '_system\backup'
-  New-Item -ItemType Directory -Force -Path $bk | Out-Null
-  Copy-Item $target (Join-Path $bk ("AD_FINEM_" + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.json'))
-  Say '    Replaced an earlier AD FINEM collection (backup in _system\backup).' 'Gray'
-}
 $template = [IO.File]::ReadAllText((Join-Path $dest '_system\obs_template.json'))
 $kitPath  = $dest.Replace('\', '/')
-$json     = $template.Replace('__KIT__', $kitPath)
-if (Test-Path $target) {
-  try {
-    $merged = Merge-Collection $json ([IO.File]::ReadAllText($target))
-    if ($merged) { $json = $merged; Say '    Kept your webcam, game capture, audio devices and your own scenes.' 'Green' }
-  } catch { Say "    (Could not keep your old OBS picks: $($_.Exception.Message) - set webcam/game again.)" 'Yellow' }
+$base     = $template.Replace('__KIT__', $kitPath)
+function Write-Collection([string]$fileName, [string]$json) {
+  $target = Join-Path $scenesDir $fileName
+  $fresh = -not (Test-Path $target)
+  if (-not $fresh) {
+    $bk = Join-Path $dest '_system\backup'
+    New-Item -ItemType Directory -Force -Path $bk | Out-Null
+    Copy-Item $target (Join-Path $bk ($fileName.Replace('.json', '') + '_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.json'))
+    try {
+      $merged = Merge-Collection $json ([IO.File]::ReadAllText($target))
+      if ($merged) { $json = $merged; Say '    Kept your webcam, game capture, audio devices and your own scenes.' 'Green' }
+    } catch { Say "    (Could not keep your old OBS picks: $($_.Exception.Message) - set webcam/game again.)" 'Yellow' }
+  }
+  if ($fresh -and -not $MicFilters) { $MicFilters = 'ns,gate,comp,limit' }   # new setups get a clean mic
+  try { $json = Set-Devices $json } catch { Say "    (Could not set camera/mic: $($_.Exception.Message) - pick them in OBS.)" 'Yellow' }
+  [IO.File]::WriteAllText($target, $json, (New-Object Text.UTF8Encoding $false))
+  Say "    Written: $target" 'Green'
+  # check that every file the scenes use is there
+  $missing = @()
+  foreach ($m in [regex]::Matches($json, '"(?:local_file|path)":\s*"([^"]+)"')) {
+    $p = $m.Groups[1].Value.Replace('/', '\')
+    if (-not (Test-Path $p)) { $missing += $p }
+  }
+  if ($missing.Count) {
+    Say '    Note - these files are missing (those scenes will be empty until you add them):' 'Yellow'
+    $missing | ForEach-Object { Say "      $_" 'Yellow' }
+  }
 }
-if ($freshCollection -and -not $MicFilters) { $MicFilters = 'ns,gate,comp,limit' }   # new setups get a clean mic
-try { $json = Set-Devices $json } catch { Say "    (Could not set camera/mic: $($_.Exception.Message) - pick them in OBS.)" 'Yellow' }
-[IO.File]::WriteAllText($target, $json, (New-Object Text.UTF8Encoding $false))
-Say "    Written: $target" 'Green'
-
-# check that every file the scenes use is there
-$missing = @()
-foreach ($m in [regex]::Matches($json, '"(?:local_file|path)":\s*"([^"]+)"')) {
-  $p = $m.Groups[1].Value.Replace('/', '\')
-  if (-not (Test-Path $p)) { $missing += $p }
-}
-if ($missing.Count) {
-  Say '    Note - these files are missing (those scenes will be empty until you add them):' 'Yellow'
-  $missing | ForEach-Object { Say "      $_" 'Yellow' }
+Write-Collection 'AD_FINEM.json' $base
+$fTarget = Join-Path $scenesDir 'AD_FINEM_Forever.json'
+if ($Edition -eq 'both') {
+  # second collection "AD FINEM Forever": same scenes, Forever videos, colours and webcam picture
+  $fj = ([regex]'"name":\s*"AD FINEM"').Replace($base, '"name": "AD FINEM Forever"', 1)
+  $fj = $fj.Replace("$kitPath/videos/", "$kitPath/editions/forever/videos/")
+  $fj = $fj.Replace("$kitPath/overlays/img/webcam_placeholder.jpg", "$kitPath/editions/forever/overlays/img/webcam_placeholder.jpg")
+  foreach ($n in 'starting', 'brb', 'ending', 'ingame', 'alerts', 'sponsors') { $fj = $fj.Replace("$kitPath/overlays/$n.html", "$kitPath/overlays/$n-forever.html") }
+  Write-Collection 'AD_FINEM_Forever.json' $fj
+  Say '    In OBS: Scene Collection > "AD FINEM" (Retail) or "AD FINEM Forever".' 'Green'
+} elseif (Test-Path $fTarget) {   # switched away from "both": put the Forever collection away (backup kept)
+  $bk = Join-Path $dest '_system\backup'; New-Item -ItemType Directory -Force -Path $bk | Out-Null
+  Move-Item $fTarget (Join-Path $bk ('AD_FINEM_Forever_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.json')) -Force
+  Say '    Removed the "AD FINEM Forever" collection (backup in _system\backup).' 'Gray'
 }
 
 # ---------------------------------------------------------------- 5. shortcuts

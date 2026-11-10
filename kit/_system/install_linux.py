@@ -184,18 +184,22 @@ def sync_placeholder(c):
 
 
 def pick_edition(dest):
-    """'retail' or 'forever': --forever / --retail on the command line, else the one installed, else ask."""
+    """'retail', 'forever' or 'both': --retail / --forever / --both, else the one installed, else ask."""
+    if "--both" in sys.argv:
+        return "both"
     if "--forever" in sys.argv:
         return "forever"
     if "--retail" in sys.argv:
         return "retail"
     try:
         with open(os.path.join(dest, "_system", "edition.txt"), encoding="utf-8") as f:
-            return "forever" if f.read().strip().lower() == "forever" else "retail"
+            v = f.read().strip().lower()
+            return v if v in ("forever", "both") else "retail"
     except OSError:
         pass
     if sys.stdin.isatty():
-        return "forever" if ask("Do you stream WoW Forever? (y = Forever look, n = Retail look)") else "retail"
+        a = input("    Which game do you stream? r = Retail, f = WoW Forever, b = both (two scene collections) ").strip().lower()
+        return {"f": "forever", "b": "both"}.get(a[:1], "retail")
     return "retail"
 
 
@@ -224,9 +228,45 @@ def set_edition_texts(dest, ed):
         say("    Standard texts set for this game (your own texts were kept).")
 
 
+FOREVER_PAGES = ("starting", "brb", "ending", "ingame", "alerts", "sponsors")
+
+
+def make_forever_overlays(dest):
+    """Retail + Forever side by side: "<overlay>-forever.html" copies with the Forever colours, emblem and alert."""
+    ov = os.path.join(dest, "overlays")
+    for n in FOREVER_PAGES:
+        src = os.path.join(ov, n + ".html")
+        if not os.path.exists(src):
+            continue
+        with open(src, encoding="utf-8") as f:
+            t = f.read()
+        t = t.replace('<link rel="stylesheet" href="edition.css">',
+                      '<link rel="stylesheet" href="edition.css"><link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
+        t = t.replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
+        t = t.replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
+        t = t.replace('"../videos/alert_1x1_alpha.webm"', '"../editions/forever/videos/alert_1x1_alpha.webm"')
+        with open(os.path.join(ov, n + "-forever.html"), "w", encoding="utf-8") as f:
+            f.write(t)
+
+
+def forever_collection(collection, dest):
+    """The "AD FINEM Forever" scene collection: same scenes, Forever videos, overlays and webcam picture."""
+    kit = dest.replace("\\", "/")
+    txt = json.dumps(collection, ensure_ascii=False)
+    txt = txt.replace(kit + "/videos/", kit + "/editions/forever/videos/")
+    txt = txt.replace(kit + "/overlays/img/webcam_placeholder.jpg", kit + "/editions/forever/overlays/img/webcam_placeholder.jpg")
+    for n in FOREVER_PAGES:
+        txt = txt.replace(kit + "/overlays/" + n + ".html", kit + "/overlays/" + n + "-forever.html")
+    c = json.loads(txt)
+    c["name"] = "AD FINEM Forever"
+    return c
+
+
 def apply_edition(dest):
-    """Lays editions/forever over the kit (videos, colours, emblem) or puts the Retail files back."""
-    ed = pick_edition(dest)
+    """Lays editions/forever over the kit (videos, colours, emblem) or puts the Retail files back.
+    'both' keeps the kit Retail and makes Forever copies of the overlays for a second scene collection."""
+    choice = pick_edition(dest)
+    ed = "retail" if choice == "both" else choice
     ed_src = os.path.join(SRC, "editions", "forever")
     if not os.path.isdir(ed_src):
         ed_src = os.path.join(dest, "editions", "forever")
@@ -253,10 +293,14 @@ def apply_edition(dest):
                     shutil.copy2(r, d)
                 elif os.path.exists(b):
                     shutil.copy2(b, d)
-    set_edition_texts(dest, ed)
+    set_edition_texts(dest, "retail" if choice == "retail" else "forever")
+    if choice == "both":
+        make_forever_overlays(dest)
+    ed = choice
     with open(os.path.join(dest, "_system", "edition.txt"), "w", encoding="utf-8") as f:
         f.write(ed + "\n")
-    say("    Look: " + ("WoW Forever (gold + sapphire)" if ed == "forever" else "Retail"), GREEN)
+    say("    Look: " + {"forever": "WoW Forever (gold + sapphire)", "both": "Retail AND WoW Forever (two scene collections)"}.get(ed, "Retail"), GREEN)
+    return ed
 
 
 def main():
@@ -313,7 +357,7 @@ def main():
                 os.chmod(p, 0o755)
         say("    Updated the kit. Your own settings.js was kept." if keep else "    Copied.", GREEN)
 
-    apply_edition(dest)
+    edition = apply_edition(dest)
 
     # ---------------------------------------------------------------- 4. OBS scene collection
     step(4, 'Adding the "AD FINEM" scene collection to OBS')
@@ -328,15 +372,19 @@ def main():
         else:
             targets = [OBS_CONFIGS[0]]
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    for cfg in targets:
+    jobs = [("AD_FINEM.json", collection)]
+    if edition == "both":
+        jobs.append(("AD_FINEM_Forever.json", forever_collection(collection, dest)))
+    for cfg, (fname, coll) in [(c, j) for c in targets for j in jobs]:
         scenes = os.path.join(cfg, "basic", "scenes")
         os.makedirs(scenes, exist_ok=True)
-        target = os.path.join(scenes, "AD_FINEM.json")
+        target = os.path.join(scenes, fname)
+        collection = coll
         out = collection
         if os.path.exists(target):
             bk = os.path.join(dest, "_system", "backup")
             os.makedirs(bk, exist_ok=True)
-            shutil.copy2(target, os.path.join(bk, f"AD_FINEM_{stamp}.json"))
+            shutil.copy2(target, os.path.join(bk, f"{fname[:-5]}_{stamp}.json"))
             say("    Replaced an earlier AD FINEM collection (backup in _system/backup).", DIM)
             try:
                 with open(target, encoding="utf-8-sig") as f:
@@ -352,6 +400,14 @@ def main():
         with open(target, "w", encoding="utf-8") as f:
             json.dump(out, f, indent=2, ensure_ascii=False)
         say(f"    Written: {target}", GREEN)
+    if edition == "both":
+        say('    In OBS: Scene Collection > "AD FINEM" (Retail) or "AD FINEM Forever".', GREEN)
+    else:   # switched away from "both": put the Forever collection away
+        for cfg in targets:
+            ft = os.path.join(cfg, "basic", "scenes", "AD_FINEM_Forever.json")
+            if os.path.exists(ft):
+                os.replace(ft, ft + ".removed")
+                say("    Removed the \"AD FINEM Forever\" collection (kept as .removed).", DIM)
     say(f"    Game capture: {'PipeWire (Wayland)' if linux_session() == 'wayland' else 'Window capture (X11)'}", DIM)
 
     missing = []

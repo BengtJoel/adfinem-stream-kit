@@ -207,29 +207,37 @@ $p = $pages[1]
 $p.Controls.Add((New-Label 'Which World of Warcraft do you stream?' 40 20 680 34 (HeadFont 16)))
 $p.Controls.Add((New-Label 'This picks the intro, outro, transitions, alert animation, colours and Stream Deck icons. You can switch later by running the setup again.' 40 62 680 40 $F_BODY $cMUTED))
 $script:edition = 'retail'
-try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower(); if ($e0 -eq 'forever') { $script:edition = 'forever' } } catch {}
+try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower(); if ($e0 -in 'forever', 'both') { $script:edition = $e0 } } catch {}
 $cards = @{}
-function New-EditionCard($key, $title, $sub, $img, $x) {
+function New-EditionCard($key, $title, $sub, $imgs, $x) {
   $c = New-Object System.Windows.Forms.Panel
-  $c.Location = New-Object System.Drawing.Point($x, 120); $c.Size = New-Object System.Drawing.Size(330, 230)
+  $c.Location = New-Object System.Drawing.Point($x, 120); $c.Size = New-Object System.Drawing.Size(213, 236)
   $c.BackColor = $cPANEL; $c.Cursor = 'Hand'; $c.Tag = $key
-  $pb = New-Object System.Windows.Forms.PictureBox
-  $pb.Location = New-Object System.Drawing.Point(115, 22); $pb.Size = New-Object System.Drawing.Size(100, 100); $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
-  try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir $img)) } catch {}
-  $l1 = New-Label $title 20 136 290 30 (HeadFont 14) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
-  $l2 = New-Label $sub 20 170 290 44 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
-  $c.Controls.AddRange(@($pb, $l1, $l2))
+  $ctls = @($c)
+  $n = @($imgs).Count; $sz = $(if ($n -gt 1) { 72 } else { 92 }); $gap = 8
+  $x0 = [int]((213 - ($n * $sz + ($n - 1) * $gap)) / 2)
+  for ($i = 0; $i -lt $n; $i++) {
+    $pb = New-Object System.Windows.Forms.PictureBox
+    $pb.Location = New-Object System.Drawing.Point(($x0 + $i * ($sz + $gap)), (22 + [int]((92 - $sz) / 2))); $pb.Size = New-Object System.Drawing.Size($sz, $sz)
+    $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
+    try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir @($imgs)[$i])) } catch {}
+    $c.Controls.Add($pb); $ctls += $pb
+  }
+  $l1 = New-Label $title 10 128 193 30 (HeadFont 13) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
+  $l2 = New-Label $sub 12 162 189 64 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
+  $c.Controls.AddRange(@($l1, $l2)); $ctls += $l1, $l2
   $c.Add_Paint({ param($s, $e)
     $sel = ($s.Tag -eq $script:edition)
-    $col = if ($sel) { if ($s.Tag -eq 'forever') { C 217 164 65 } else { $cCORAL } } else { $cLINE }
+    $col = if ($sel) { if ($s.Tag -eq 'retail') { $cCORAL } else { C 217 164 65 } } else { $cLINE }
     $pen = New-Object System.Drawing.Pen($col, $(if ($sel) { 3 } else { 1 }))
     $e.Graphics.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose() })
   $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() } }
-  foreach ($ctl in @($c, $pb, $l1, $l2)) { $ctl.Add_Click($pick) }
+  foreach ($ctl in $ctls) { $ctl.Add_Click($pick) }
   $pages[1].Controls.Add($c); $cards[$key] = $c
 }
-New-EditionCard 'retail' 'RETAIL' 'Live servers. The coral AD FINEM look.' 'emblem.png' 40
-New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' 'forever-emblem.png' 390
+New-EditionCard 'retail' 'RETAIL' 'Live servers. The coral AD FINEM look.' @('emblem.png') 40
+New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' @('forever-emblem.png') 263
+New-EditionCard 'both' 'BOTH' 'Two scene collections in OBS - switch with Scene Collection > AD FINEM / AD FINEM Forever.' @('emblem.png', 'forever-emblem.png') 486
 
 # ------------------------------------------------------------------ page 3: camera + mic
 $p = $pages[2]
@@ -454,7 +462,7 @@ $timer.Add_Tick({
     if ($ok) {
       $script:exitCode = 0
       $bar.Value = 6
-      $lines = @("Open OBS and choose Scene Collection > AD FINEM.")
+      $lines = @($(if ($script:edition -eq 'both') { "Open OBS and choose Scene Collection > AD FINEM (Retail) or AD FINEM Forever." } else { "Open OBS and choose Scene Collection > AD FINEM." }))
       if (-not $script:obsExe) { $lines = @('Install OBS Studio, then run this setup again to add the scenes.') }
       $lines += "Change texts, alerts and sponsors with ""AD FINEM - Customize overlays"" on your desktop."
       $lines += "Your webcam shows the AD FINEM picture until the camera is on."
