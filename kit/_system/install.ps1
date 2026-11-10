@@ -193,8 +193,27 @@ if ((Resolve-Path $src).Path.TrimEnd('\') -ieq $dest.TrimEnd('\')) {
 } else {
   New-Item -ItemType Directory -Force -Path $dest | Out-Null
   $keepSettings = Test-Path (Join-Path $dest 'settings.js')
-  robocopy "$src" "$dest" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP /XF 'settings.js' 'twitch_auth.js' | Out-Null
-  if ($LASTEXITCODE -ge 8) { throw "Copying failed (robocopy code $LASTEXITCODE)." }
+  $rcLog = Join-Path $env:TEMP 'adfinem_copy_log.txt'
+  # /COPY:DT /DCOPY:T: copy data + timestamps only - attributes can't always be set in OneDrive folders
+  robocopy "$src" "$dest" /E /R:2 /W:1 /COPY:DT /DCOPY:T /NP /XF 'settings.js' 'twitch_auth.js' "/LOG:$rcLog" | Out-Null
+  $rc = $LASTEXITCODE
+  # check every file arrived (robocopy can report "failed" for things that don't matter); fix any that didn't
+  $bad = @()
+  foreach ($f in Get-ChildItem $src -Recurse -File) {
+    if ($f.Name -in 'settings.js', 'twitch_auth.js') { continue }
+    $rel = $f.FullName.Substring($src.TrimEnd('\').Length).TrimStart('\')
+    $d = Join-Path $dest $rel
+    if (-not (Test-Path $d) -or (Get-Item $d).Length -ne $f.Length) {
+      try {
+        New-Item -ItemType Directory -Force -Path (Split-Path $d) | Out-Null
+        if (Test-Path $d) { (Get-Item $d -Force).Attributes = 'Normal' }
+        Copy-Item $f.FullName $d -Force
+      } catch {}
+      if (-not (Test-Path $d) -or (Get-Item $d).Length -ne $f.Length) { $bad += $rel }
+    }
+  }
+  if ($bad.Count) { throw "Could not copy: $($bad -join ', '). Is a kit file open in another program? (details: $rcLog)" }
+  if ($rc -ge 8) { Say "    (Copy reported warnings - all files checked and in place.)" 'Gray' }
   if ($keepSettings) {
     Say '    Updated the kit. Your own settings.js was kept.' 'Green'
   } else {
