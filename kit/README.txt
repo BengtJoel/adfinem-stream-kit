@@ -116,8 +116,10 @@ STREAMLABS DESKTOP
 LINUX
   Needs OBS Studio (native, Flatpak or Snap) and Python 3.
   Install:   open a terminal in the kit folder and run   bash install-linux.sh
-             (WoW Forever look: bash install-linux.sh --forever,
-              both as two scene collections: --both, Retail: --retail)
+             It asks: Retail, WoW Forever or both. "Both" adds a second
+             scene collection, "AD FINEM Forever". Run it again any time
+             to change (or skip the question with --retail, --forever
+             or --both).
   Edit text: "AD FINEM - Customize overlays" in your app menu,
              or   bash customize-overlays-linux.sh
   Remove:    bash uninstall-linux.sh

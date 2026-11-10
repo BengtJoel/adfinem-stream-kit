@@ -218,23 +218,34 @@ def sync_placeholder(c):
 
 
 def pick_edition(dest):
-    """'retail', 'forever' or 'both': --retail / --forever / --both, else the one installed, else ask."""
+    """'retail', 'forever' or 'both': --retail / --forever / --both on the command line, else ask
+    (Enter keeps what is installed). Without a terminal: the one installed, else Retail."""
     if "--both" in sys.argv:
         return "both"
     if "--forever" in sys.argv:
         return "forever"
     if "--retail" in sys.argv:
         return "retail"
+    current = None
     try:
         with open(os.path.join(dest, "_system", "edition.txt"), encoding="utf-8") as f:
             v = f.read().strip().lower()
-            return v if v in ("forever", "both") else "retail"
+            current = v if v in ("forever", "both") else "retail"
     except OSError:
         pass
     if sys.stdin.isatty():
-        a = input("    Which game do you stream? r = Retail, f = WoW Forever, b = both (two scene collections) ").strip().lower()
-        return {"f": "forever", "b": "both"}.get(a[:1], "retail")
-    return "retail"
+        names = {"retail": "Retail", "forever": "WoW Forever", "both": "both"}
+        print("\n    Which game do you stream?")
+        print("      r = Retail")
+        print("      f = WoW Forever")
+        print('      b = both (two scene collections in OBS: "AD FINEM" and "AD FINEM Forever")')
+        hint = f" [Enter = keep {names[current]}]" if current else " [Enter = Retail]"
+        try:
+            a = input(f"    Your choice (r/f/b){hint}: ").strip().lower()
+        except EOFError:
+            a = ""
+        return {"r": "retail", "f": "forever", "b": "both"}.get(a[:1], current or "retail")
+    return current or "retail"
 
 
 def set_edition_texts(dest, ed, sf=None):
@@ -344,6 +355,8 @@ def apply_edition(dest):
     with open(os.path.join(dest, "_system", "edition.txt"), "w", encoding="utf-8") as f:
         f.write(ed + "\n")
     say("    Look: " + {"forever": "WoW Forever (gold + sapphire)", "both": "Retail AND WoW Forever (two scene collections)"}.get(ed, "Retail"), GREEN)
+    if ed != "both":
+        say("    (Want Retail and WoW Forever as two scene collections? Run:  bash install-linux.sh --both)", DIM)
     return ed
 
 
