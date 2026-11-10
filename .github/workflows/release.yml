@@ -30,7 +30,7 @@ jobs:
       - name: Build zip
         run: |
           mkdir -p zipsrc && cp -r kit "zipsrc/AD FINEM Stream Kit"
-          chmod +x "zipsrc/AD FINEM Stream Kit"/*.sh "zipsrc/AD FINEM Stream Kit"/_system/*.py
+          chmod +x "zipsrc/AD FINEM Stream Kit"/*.sh "zipsrc/AD FINEM Stream Kit"/*.command "zipsrc/AD FINEM Stream Kit"/_system/*.py
           (cd zipsrc && zip -qr "../release/AD-FINEM-Stream-Kit-$VER.zip" "AD FINEM Stream Kit")
           (cd release && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
       - name: Publish

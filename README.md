@@ -2,7 +2,7 @@
 
 Everything an Ad Finem streamer needs, set up in OBS in about a minute.
 
-**[Download the latest version](https://github.com/BengtJoel/adfinem-stream-kit/releases/latest)** - get `AD-FINEM-Stream-Kit-Setup.exe` (Windows) or the `.zip` (Linux / manual install).
+**[Download the latest version](https://github.com/BengtJoel/adfinem-stream-kit/releases/latest)** - get `AD-FINEM-Stream-Kit-Setup.exe` (Windows) or the `.zip` (Mac / Linux / manual install).
 
 ## What's included
 
@@ -27,6 +27,8 @@ Comes in two looks: **Retail** (coral) and **WoW Forever** (gold and sapphire, w
 4. Open OBS > Scene Collection > **AD FINEM**, and pick the WoW window in the In-Game scene.
 
 Updates are offered automatically when OBS starts. Your texts, sponsors, Twitch connection and OBS picks are kept.
+
+**Mac:** download the `.zip`, unzip it, then double-click `INSTALL-mac.command` (first time: right-click > Open). Needs macOS 13+.
 
 **Linux:** download the `.zip`, unzip it, then run `bash install-linux.sh` in the folder (add `--forever` for the WoW Forever look, or `--both`).
 

@@ -125,6 +125,24 @@ LINUX
   window) or window capture on X11. Webcam: Video Capture Device (V4L2).
 
 
+MAC
+  Needs OBS Studio (obsproject.com) and macOS 13 or newer.
+  Install:   double-click INSTALL-mac.command in the kit folder.
+             The first time macOS blocks it: right-click > Open > Open.
+             If macOS offers to install "Command Line Tools", click Install
+             and run INSTALL-mac.command again when it's done.
+             It asks Retail, WoW Forever or both.
+  Edit text: "AD FINEM - Customize overlays" on your Desktop
+             (or "Customize overlays-mac.command" in the kit folder).
+             Connect Twitch there, on the Alerts tab.
+  Remove:    double-click UNINSTALL-mac.command.
+  Game capture is macOS Screen Capture: open "Game Capture - World of
+  Warcraft" in OBS and pick the WoW window. OBS asks for Screen Recording
+  permission the first time (System Settings > Privacy & Security).
+  New kit versions: download the zip again and run INSTALL-mac.command.
+  The Stream Deck page is Windows-only for now.
+
+
 PROBLEMS?
   Game Capture is black   Open "Game Capture - World of Warcraft" in OBS and
                           pick the WoW window from the list.

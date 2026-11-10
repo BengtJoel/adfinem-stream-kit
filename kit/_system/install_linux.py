@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""AD FINEM Stream Kit - installer for Linux.
+"""AD FINEM Stream Kit - installer for Linux and macOS.
 
-Started by install-linux.sh. Safe to run again: your settings.js is kept.
-  1. checks for OBS Studio (native, Flatpak or Snap)
+Started by install-linux.sh (Linux) or INSTALL-mac.command (macOS). Safe to run again: your settings.js is kept.
+  1. checks for OBS Studio (Linux: native, Flatpak or Snap - macOS: OBS.app)
   2. copies the kit to ~/Documents/AD FINEM Stream Kit
-  3. adds the "AD FINEM" scene collection to OBS, using Linux capture sources
-  4. adds an "AD FINEM - Customize overlays" launcher to your app menu
+  3. adds the "AD FINEM" scene collection to OBS, using Linux / macOS capture sources
+  4. adds an "AD FINEM - Customize overlays" launcher (Linux: app menu, macOS: Desktop)
 """
 import datetime
 import uuid
@@ -17,6 +17,7 @@ import sys
 import time
 
 HOME = os.path.expanduser("~")
+MAC = sys.platform == "darwin"
 SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ORANGE, GREEN, YELLOW, RED, DIM, END = "\033[38;5;208m", "\033[32m", "\033[33m", "\033[31m", "\033[90m", "\033[0m"
 if not sys.stdout.isatty():
@@ -28,6 +29,8 @@ OBS_CONFIGS = [
     os.path.join(HOME, ".var", "app", "com.obsproject.Studio", "config", "obs-studio"),
     os.path.join(HOME, "snap", "obs-studio", "current", ".config", "obs-studio"),
 ]
+if MAC:
+    OBS_CONFIGS = [os.path.join(HOME, "Library", "Application Support", "obs-studio")]
 
 
 def say(text, color=""):
@@ -48,6 +51,8 @@ def ask(question):
 
 
 def documents_dir():
+    if MAC:
+        return os.path.join(HOME, "Documents")
     try:
         d = subprocess.run(["xdg-user-dir", "DOCUMENTS"], capture_output=True, text=True, timeout=5).stdout.strip()
         if d and d != HOME and os.path.isdir(d):
@@ -72,7 +77,16 @@ def flatpak_has_obs():
 def obs_running():
     if not have("pgrep"):
         return False
+    if MAC:   # the app's process is called "OBS"
+        return subprocess.run(["pgrep", "-ix", "obs"], capture_output=True).returncode == 0
     return subprocess.run(["pgrep", "-x", "obs"], capture_output=True).returncode == 0
+
+
+def mac_obs_app():
+    for p in ("/Applications/OBS.app", os.path.join(HOME, "Applications", "OBS.app")):
+        if os.path.isdir(p):
+            return p
+    return None
 
 
 # ------------------------------------------------------------------ Linux sources
@@ -80,10 +94,29 @@ def linux_session():
     return "wayland" if (os.environ.get("XDG_SESSION_TYPE") == "wayland" or os.environ.get("WAYLAND_DISPLAY")) else "x11"
 
 
+def to_mac(collection):
+    """macOS sources: ScreenCaptureKit window capture, Video Capture Device, Core Audio mic, SCK desktop audio."""
+    for s in collection["sources"]:
+        if s["id"] == "game_capture":      # pick the WoW window in the source's properties
+            s["id"] = s["versioned_id"] = "screen_capture"
+            s["settings"] = {"type": 1, "show_cursor": True}
+        elif s["id"] == "dshow_input":
+            s["id"] = s["versioned_id"] = "macos-avcapture"
+            s["settings"] = {}
+    for key, sid, st in (("DesktopAudioDevice1", "sck_audio_capture", {"type": 0}),
+                         ("AuxAudioDevice1", "coreaudio_input_capture", {"device_id": "default"})):
+        if key in collection:
+            collection[key]["id"] = collection[key]["versioned_id"] = sid
+            collection[key]["settings"] = st
+    return collection
+
+
 def to_linux(collection, kit):
-    """Turn the Windows template into a Linux scene collection."""
+    """Turn the Windows template into a Linux (or macOS) scene collection."""
     text = json.dumps(collection)
     collection = json.loads(text.replace("__KIT__", kit.replace("\\", "/").replace('"', '\\"')))
+    if MAC:
+        return to_mac(collection)
     wayland = linux_session() == "wayland"
     for s in collection["sources"]:
         if s["id"] == "game_capture":
@@ -106,7 +139,8 @@ def to_linux(collection, kit):
 USER_IDS = {"dshow_input", "game_capture", "window_capture", "monitor_capture", "wasapi_input_capture", "wasapi_output_capture",
             "wasapi_process_output_capture", "v4l2_input", "xcomposite_input", "pipewire-screen-capture-source",
             "pipewire-desktop-capture-source", "pipewire-window-capture-source", "pipewire-camera-source",
-            "pulse_input_capture", "pulse_output_capture", "av_capture_input", "screen_capture"}
+            "pulse_input_capture", "pulse_output_capture", "av_capture_input", "screen_capture",
+            "macos-avcapture", "macos-avcapture-fast", "coreaudio_input_capture", "coreaudio_output_capture", "sck_audio_capture"}
 
 
 def merge(new, old):
@@ -169,7 +203,7 @@ def kit_filters():
 
 def sync_placeholder(c):
     """The webcam placeholder picture sits exactly where the webcam is."""
-    cams = {s["name"] for s in c["sources"] if s.get("id") in ("dshow_input", "v4l2_input", "pipewire-camera-source", "av_capture_input")}
+    cams = {s["name"] for s in c["sources"] if s.get("id") in ("dshow_input", "v4l2_input", "pipewire-camera-source", "av_capture_input", "macos-avcapture", "macos-avcapture-fast")}
     for s in c["sources"]:
         if s.get("id") != "scene":
             continue
@@ -317,15 +351,30 @@ def main():
     docs = documents_dir()
     dest = os.path.join(docs, "AD FINEM Stream Kit")
     say(f"\n  {ORANGE}==============================================={END}")
-    say("     AD FINEM  -  STREAM KIT INSTALLER (Linux)")
+    say(f"     AD FINEM  -  STREAM KIT INSTALLER ({'macOS' if MAC else 'Linux'})")
     say(f"  {ORANGE}==============================================={END}")
     say(f"  Installs to: {dest}")
 
     # ---------------------------------------------------------------- 1. OBS
     step(1, "Checking for OBS Studio")
-    native, flat = have("obs"), flatpak_has_obs()
-    snap = os.path.isdir(os.path.join(HOME, "snap", "obs-studio"))
-    if native or flat or snap:
+    if MAC:
+        native, flat, snap = bool(mac_obs_app()), False, False
+        if not native:
+            say("    OBS Studio was not found.", YELLOW)
+            if have("brew") and ask("Install OBS Studio with Homebrew now?"):
+                subprocess.run(["brew", "install", "--cask", "obs"])
+                native = bool(mac_obs_app())
+            if not native:
+                say("    Download OBS from https://obsproject.com, then run INSTALL-mac.command again.", YELLOW)
+                say("    Continuing so the files are ready.", YELLOW)
+        else:
+            say(f"    Found: {mac_obs_app()}", GREEN)
+    else:
+        native, flat = have("obs"), flatpak_has_obs()
+        snap = os.path.isdir(os.path.join(HOME, "snap", "obs-studio"))
+    if MAC:
+        pass
+    elif native or flat or snap:
         say("    Found: " + ", ".join(n for n, ok in (("OBS", native), ("OBS (Flatpak)", flat), ("OBS (Snap)", snap)) if ok), GREEN)
     else:
         say("    OBS Studio was not found.", YELLOW)
@@ -361,7 +410,8 @@ def main():
                 if rel == "_system" and f == "twitch_auth.js":
                     continue
                 shutil.copy2(os.path.join(root, f), os.path.join(dest, rel, f))
-        for sh in ("install-linux.sh", "uninstall-linux.sh", "customize-overlays-linux.sh"):
+        for sh in ("install-linux.sh", "uninstall-linux.sh", "customize-overlays-linux.sh",
+                   "INSTALL-mac.command", "UNINSTALL-mac.command", "Customize overlays-mac.command"):
             p = os.path.join(dest, sh)
             if os.path.exists(p):
                 os.chmod(p, 0o755)
@@ -418,7 +468,10 @@ def main():
             if os.path.exists(ft):
                 os.replace(ft, ft + ".removed")
                 say("    Removed the \"AD FINEM Forever\" collection (kept as .removed).", DIM)
-    say(f"    Game capture: {'PipeWire (Wayland)' if linux_session() == 'wayland' else 'Window capture (X11)'}", DIM)
+    if MAC:
+        say("    Game capture: macOS Screen Capture (window). OBS asks for Screen Recording permission the first time.", DIM)
+    else:
+        say(f"    Game capture: {'PipeWire (Wayland)' if linux_session() == 'wayland' else 'Window capture (X11)'}", DIM)
 
     missing = []
     for s in collection["sources"]:
@@ -435,31 +488,56 @@ def main():
             say(f"      {m}", YELLOW)
 
     # ---------------------------------------------------------------- 5. launcher
-    step(5, "Adding the editor to your app menu")
-    try:
-        apps = os.path.join((os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share")), "applications")
-        os.makedirs(apps, exist_ok=True)
-        icon = os.path.join(dest, "overlays", "img", "adfinem-emblem-gradient.svg")
-        entry = (
-            "[Desktop Entry]\nType=Application\nName=AD FINEM - Customize overlays\n"
-            "Comment=Change the text on your AD FINEM stream overlays\n"
-            f'Exec=python3 "{os.path.join(dest, "_system", "editor.py")}"\n'
-            f"Icon={icon}\nTerminal=false\nCategories=AudioVideo;\n"
-        )
-        path = os.path.join(apps, "adfinem-customize-overlays.desktop")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(entry)
-        os.chmod(path, 0o755)
-        say('    App menu: "AD FINEM - Customize overlays"', GREEN)
-    except Exception as e:
-        say(f"    Couldn't add the launcher ({e}). Use customize-overlays-linux.sh in the kit folder.", YELLOW)
+    if MAC:
+        step(5, "Adding the editor to your Desktop")
+        try:
+            cmd = os.path.join(dest, "Customize overlays-mac.command")
+            if os.path.exists(cmd):
+                os.chmod(cmd, 0o755)
+                link = os.path.join(HOME, "Desktop", "AD FINEM - Customize overlays.command")
+                if os.path.lexists(link):
+                    os.remove(link)
+                os.symlink(cmd, link)
+                say('    Desktop: "AD FINEM - Customize overlays"', GREEN)
+            # the downloaded kit is quarantined by macOS; clear it so the .command files open with a double-click
+            if have("xattr"):
+                subprocess.run(["xattr", "-dr", "com.apple.quarantine", dest], capture_output=True)
+        except Exception as e:
+            say(f"    Couldn't add the Desktop shortcut ({e}). Use \"Customize overlays-mac.command\" in the kit folder.", YELLOW)
+    else:
+        step(5, "Adding the editor to your app menu")
+        try:
+            apps = os.path.join((os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share")), "applications")
+            os.makedirs(apps, exist_ok=True)
+            icon = os.path.join(dest, "overlays", "img", "adfinem-emblem-gradient.svg")
+            entry = (
+                "[Desktop Entry]\nType=Application\nName=AD FINEM - Customize overlays\n"
+                "Comment=Change the text on your AD FINEM stream overlays\n"
+                f'Exec=python3 "{os.path.join(dest, "_system", "editor.py")}"\n'
+                f"Icon={icon}\nTerminal=false\nCategories=AudioVideo;\n"
+            )
+            path = os.path.join(apps, "adfinem-customize-overlays.desktop")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(entry)
+            os.chmod(path, 0o755)
+            say('    App menu: "AD FINEM - Customize overlays"', GREEN)
+        except Exception as e:
+            say(f"    Couldn't add the launcher ({e}). Use customize-overlays-linux.sh in the kit folder.", YELLOW)
 
     say(f"\n  {GREEN}Done!{END}")
-    say("  1. Open OBS > Scene Collection > AD FINEM")
+    if edition == "both":
+        say('  1. Open OBS > Scene Collection > "AD FINEM" (Retail) or "AD FINEM Forever"')
+    else:
+        say("  1. Open OBS > Scene Collection > AD FINEM")
     say('  2. In "AF - In-Game": open "Game Capture - World of Warcraft" and pick the WoW window,')
     say('     and open "Webcam (pick your camera)" and pick your camera')
-    say('  3. Change your text and set up alerts: "AD FINEM - Customize overlays" in your app menu')
-    say("     (or run customize-overlays-linux.sh in the kit folder)\n")
+    if MAC:
+        say('  3. Change your text, connect Twitch and set up alerts: "AD FINEM - Customize overlays" on your Desktop')
+        say('     (or "Customize overlays-mac.command" in the kit folder)')
+        say("")
+    else:
+        say('  3. Change your text, connect Twitch and set up alerts: "AD FINEM - Customize overlays" in your app menu')
+        say("     (or run customize-overlays-linux.sh in the kit folder)\n")
 
 
 if __name__ == "__main__":
