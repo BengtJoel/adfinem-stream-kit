@@ -53,11 +53,19 @@ function New-Button($text, $x, $y, $w, $primary = $false) {
   return $b
 }
 function New-Check($text, $sub, $x, $y, $checked) {
+  # a whole clickable row: tick box + title + one line of explanation
   $c = New-Object System.Windows.Forms.CheckBox
-  $c.Text = $text; $c.Checked = $checked; $c.Location = New-Object System.Drawing.Point($x, $y); $c.Size = New-Object System.Drawing.Size(320, 22)
-  $c.Font = $F_BOLD; $c.ForeColor = $cTEXT; $c.BackColor = [System.Drawing.Color]::Transparent; $c.FlatStyle = 'Flat'
+  $c.Text = $text; $c.Checked = [bool]$checked; $c.AutoSize = $true
+  $c.Location = New-Object System.Drawing.Point($x, $y)
+  $c.Font = $F_BOLD; $c.ForeColor = $cTEXT; $c.BackColor = $cBG; $c.FlatStyle = 'Standard'; $c.Cursor = 'Hand'
+  $l = New-Label $sub ($x + 20) ($y + 24) 320 20 $F_SMALL $cMUTED
+  $l.BackColor = $cBG; $l.Cursor = 'Hand'
+  $l.Tag = $c
+  $l.Add_Click({ $this.Tag.Checked = -not $this.Tag.Checked })
+  $c.Add_CheckedChanged({ $this.ForeColor = $(if ($this.Checked) { $cTEXT } else { $cMUTED }) })
   $pages[1].Controls.Add($c)
-  $pages[1].Controls.Add((New-Label $sub ($x + 20) ($y + 22) 320 20 $F_SMALL $cMUTED))
+  $pages[1].Controls.Add($l)
+  $c.BringToFront()
   return $c
 }
 function Style-Combo($cb) { $cb.BackColor = $cPANEL; $cb.ForeColor = $cTEXT; $cb.FlatStyle = 'Flat'; $cb.Font = $F_BODY }
