@@ -302,6 +302,7 @@ function Start-Install {
   if ($fresh -or $fs -ne $origFilters) { $args2 += @('-MicFilters', $(if ($fs) { $fs } else { 'none' })) }
   Remove-Item $outFile, $errFile -ErrorAction SilentlyContinue
   $script:proc = Start-Process powershell -ArgumentList $args2 -WindowStyle Hidden -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+  $null = $script:proc.Handle   # keep the handle so ExitCode is readable later (PowerShell quirk)
   $script:readPos = 0
   $timer.Start()
 }
@@ -333,7 +334,8 @@ $timer.Add_Tick({
   if ($script:proc -and $script:proc.HasExited) {
     $this.Stop()
     foreach ($line in (Read-NewLines)) { if ($line -match '^@@LOG (.*)$') { [void]$log.Items.Add('   ' + $matches[1]) } }
-    if ($script:proc.ExitCode -eq 0) {
+    $ok = ($script:proc.ExitCode -eq 0) -or (Get-Content $outFile -ErrorAction SilentlyContinue | Where-Object { $_ -eq '@@DONE' })
+    if ($ok) {
       $script:exitCode = 0
       $bar.Value = 6
       $lines = @("Open OBS and choose Scene Collection > AD FINEM.")

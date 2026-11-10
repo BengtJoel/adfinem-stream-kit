@@ -306,3 +306,6 @@ if ($obsExe -and -not $Quiet) {
   $go = Read-Host 'Start OBS now? (Y/N)'
   if ($go -match '^[YyJj]') { Start-Process -FilePath $obsExe -WorkingDirectory (Split-Path $obsExe) }
 }
+
+if ($Quiet) { Write-Output '@@DONE' }
+exit 0
