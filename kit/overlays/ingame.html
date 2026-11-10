@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>AD FINEM - In-game overlay</title>
-<link rel="stylesheet" href="af.css">
+<link rel="stylesheet" href="af.css"><link rel="stylesheet" href="edition.css">
 <script src="../settings.js"></script>
 <script src="settings-loader.js"></script>
 <script>
@@ -26,7 +26,7 @@
     position: absolute; inset: -2px; border: 1px solid rgba(203,213,235,.16); border-radius: 4px;
     box-shadow: 0 0 0 1px rgba(10,12,17,.7), 0 18px 40px -16px rgba(0,0,0,.9);
   }
-  .camframe .c { position: absolute; width: 26px; height: 26px; border-color: var(--coral); border-style: solid; filter: drop-shadow(0 0 6px rgba(232,120,90,.7)); }
+  .camframe .c { position: absolute; width: 26px; height: 26px; border-color: var(--coral); border-style: solid; filter: drop-shadow(0 0 6px rgba(var(--coral-rgb), .7)); }
   .c.tl { left: -6px; top: -6px; border-width: 2px 0 0 2px; }
   .c.tr { right: -6px; top: -6px; border-width: 2px 2px 0 0; }
   .c.bl { left: -6px; bottom: -6px; border-width: 0 0 2px 2px; }
@@ -34,7 +34,7 @@
   .camframe .chev {                 /* brand V notch on the top edge */
     position: absolute; top: -6px; left: 50%; width: 38px; height: 12px; transform: translateX(-50%);
     background: var(--ember-grad); clip-path: polygon(0 0, 16% 0, 50% 70%, 84% 0, 100% 0, 50% 100%);
-    filter: drop-shadow(0 0 6px rgba(238,154,91,.85));
+    filter: drop-shadow(0 0 6px rgba(var(--ember-rgb), .85));
   }
   .camframe .tag { position: absolute; left: 0; top: -54px; padding: 10px 16px; font-size: 16px; }
   .camframe .tag img { width: 22px; height: 22px; }
@@ -51,7 +51,7 @@
   .progress .rank b { color: var(--amber); font-weight: 600; }
   .progress.bump { animation: bump 2.4s ease-out; }
   @keyframes bump {
-    0%   { box-shadow: 0 0 0 1px rgba(240,176,92,.9), 0 0 40px 6px rgba(238,154,91,.75); }
+    0%   { box-shadow: 0 0 0 1px rgba(var(--amber-rgb), .9), 0 0 40px 6px rgba(var(--ember-rgb), .75); }
     100% { box-shadow: inset 0 1px 0 rgba(203,213,235,.06), 0 10px 30px -14px rgba(0,0,0,.9); }
   }
 </style>

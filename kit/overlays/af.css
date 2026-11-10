@@ -14,8 +14,12 @@
   --navy-2:#11141C;
   --text:  #EEF1F6;
   --muted: #98A0B0;
+  --coral-rgb: 232, 120, 90;
+  --ember-rgb: 238, 154, 91;
+  --amber-rgb: 240, 176, 92;
+  --hot: #fff3e6;
   --ember-grad: linear-gradient(90deg, var(--coral), var(--amber));
-  --glow: 0 0 14px rgba(238, 154, 91, .65), 0 0 36px rgba(232, 120, 90, .25);
+  --glow: 0 0 14px rgba(var(--ember-rgb), .65), 0 0 36px rgba(var(--coral-rgb), .25);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,7 +39,7 @@ html, body {
 .kicker::before {                           /* small brand chevron */
   content: ""; width: 26px; height: 9px; background: var(--ember-grad);
   clip-path: polygon(0 0, 16% 0, 50% 70%, 84% 0, 100% 0, 50% 100%);
-  filter: drop-shadow(0 0 5px rgba(238,154,91,.8));
+  filter: drop-shadow(0 0 5px rgba(var(--ember-rgb), .8));
 }
 .title {
   font: 800 118px/0.98 "Archivo", sans-serif; letter-spacing: .12em; text-transform: uppercase;
@@ -61,8 +65,8 @@ html, body {
 .wipe > .in { display: inline-block; clip-path: inset(0 100% 0 0); animation: wipe-in .9s cubic-bezier(.7,0,.2,1) forwards; animation-delay: var(--d, 0s); }
 .wipe::after {
   content: ""; position: absolute; top: -4%; bottom: -4%; width: 3px; left: 0; opacity: 0;
-  background: linear-gradient(180deg, transparent, #fff3e6 20%, var(--amber) 50%, #fff3e6 80%, transparent);
-  box-shadow: 0 0 18px 4px rgba(240,176,92,.75);
+  background: linear-gradient(180deg, transparent, var(--hot) 20%, var(--amber) 50%, var(--hot) 80%, transparent);
+  box-shadow: 0 0 18px 4px rgba(var(--amber-rgb), .75);
   animation: wipe-edge .9s cubic-bezier(.7,0,.2,1) forwards; animation-delay: var(--d, 0s);
 }
 @keyframes wipe-in { to { clip-path: inset(0 0 0 0); } }

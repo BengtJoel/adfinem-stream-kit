@@ -6,8 +6,11 @@ INSTALL (2 minutes)
   2. Pick your webcam and microphone, and which mic clean-up to use:
      noise suppression, noise gate, compressor and limiter (all on by
      default). The setup puts everything into OBS for you.
-  3. Open OBS > menu Scene Collection > AD FINEM.
-  4. Settings > Video: Base and Output resolution = 1920x1080.
+  3. Pick your game: Retail (the coral look) or WoW Forever (gold and
+     sapphire, with the Forever emblem, intro, outro and stinger).
+     Switch any time by running the setup again.
+  4. Open OBS > menu Scene Collection > AD FINEM.
+  5. Settings > Video: Base and Output resolution = 1920x1080.
   Your webcam shows the AD FINEM picture until the camera is on.
   Fine-tune the mic later: Audio Mixer > three dots next to Mic/Aux > Filters.
 
@@ -109,6 +112,8 @@ STREAMLABS DESKTOP
 LINUX
   Needs OBS Studio (native, Flatpak or Snap) and Python 3.
   Install:   open a terminal in the kit folder and run   bash install-linux.sh
+             (WoW Forever look: bash install-linux.sh --forever,
+              back to Retail: bash install-linux.sh --retail)
   Edit text: "AD FINEM - Customize overlays" in your app menu,
              or   bash customize-overlays-linux.sh
   Remove:    bash uninstall-linux.sh

@@ -183,6 +183,54 @@ def sync_placeholder(c):
     return c
 
 
+def pick_edition(dest):
+    """'retail' or 'forever': --forever / --retail on the command line, else the one installed, else ask."""
+    if "--forever" in sys.argv:
+        return "forever"
+    if "--retail" in sys.argv:
+        return "retail"
+    try:
+        with open(os.path.join(dest, "_system", "edition.txt"), encoding="utf-8") as f:
+            return "forever" if f.read().strip().lower() == "forever" else "retail"
+    except OSError:
+        pass
+    if sys.stdin.isatty():
+        return "forever" if ask("Do you stream WoW Forever? (y = Forever look, n = Retail look)") else "retail"
+    return "retail"
+
+
+def apply_edition(dest):
+    """Lays editions/forever over the kit (videos, colours, emblem) or puts the Retail files back."""
+    ed = pick_edition(dest)
+    ed_src = os.path.join(SRC, "editions", "forever")
+    if not os.path.isdir(ed_src):
+        ed_src = os.path.join(dest, "editions", "forever")
+    bk = os.path.join(dest, "_system", "edition_backup")
+    for root, dirs, files in os.walk(ed_src):
+        rel_root = os.path.relpath(root, ed_src)
+        if rel_root.split(os.sep)[0] == "streamdeck_icons":
+            continue
+        for f in files:
+            rel = os.path.normpath(os.path.join(rel_root, f))
+            fs, d, b = os.path.join(root, f), os.path.join(dest, rel), os.path.join(bk, rel)
+            is_forever = os.path.exists(d) and os.path.getsize(d) == os.path.getsize(fs)
+            if ed == "forever" and not is_forever:
+                if os.path.exists(d):
+                    os.makedirs(os.path.dirname(b), exist_ok=True)
+                    shutil.copy2(d, b)
+                os.makedirs(os.path.dirname(d), exist_ok=True)
+                shutil.copy2(fs, d)
+            elif ed == "retail" and is_forever:
+                r = os.path.join(SRC, rel)
+                if os.path.exists(r) and os.path.getsize(r) != os.path.getsize(fs):
+                    shutil.copy2(r, d)
+                elif os.path.exists(b):
+                    shutil.copy2(b, d)
+    with open(os.path.join(dest, "_system", "edition.txt"), "w", encoding="utf-8") as f:
+        f.write(ed + "\n")
+    say("    Look: " + ("WoW Forever (gold + sapphire)" if ed == "forever" else "Retail"), GREEN)
+
+
 def main():
     docs = documents_dir()
     dest = os.path.join(docs, "AD FINEM Stream Kit")
@@ -236,6 +284,8 @@ def main():
             if os.path.exists(p):
                 os.chmod(p, 0o755)
         say("    Updated the kit. Your own settings.js was kept." if keep else "    Copied.", GREEN)
+
+    apply_edition(dest)
 
     # ---------------------------------------------------------------- 4. OBS scene collection
     step(4, 'Adding the "AD FINEM" scene collection to OBS')

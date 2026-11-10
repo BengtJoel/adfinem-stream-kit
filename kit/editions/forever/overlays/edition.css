@@ -1,0 +1,13 @@
+/* WoW FOREVER edition - gold + sapphire. Loaded after af.css, overrides the Retail colours. */
+:root {
+  --coral: #D9A441;
+  --ember: #E8BC5E;
+  --amber: #F6D98F;
+  --beam:  #A9D8FF;
+  --coral-rgb: 217, 164, 65;
+  --ember-rgb: 232, 188, 94;
+  --amber-rgb: 246, 217, 143;
+  --hot: #fff6dc;
+  --sapphire: #1E8FD0;
+}
+.chip { border-color: rgba(64, 160, 230, .22); }

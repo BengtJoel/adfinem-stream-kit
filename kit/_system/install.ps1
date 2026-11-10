@@ -5,7 +5,8 @@ param(
   [switch]$Quiet,                 # no questions (updates, and the graphical setup)
   [string]$Camera = $null,        # webcam name as Windows shows it; '' = leave as it is
   [string]$Mic = $null,           # 'default', a Windows audio endpoint id, or '' = leave as it is
-  [string]$MicFilters = $null     # e.g. 'ns,gate,comp,limit'; 'none' = no kit filters; '' = leave as it is
+  [string]$MicFilters = $null,    # e.g. 'ns,gate,comp,limit'; 'none' = no kit filters; '' = leave as it is
+  [string]$Edition = $null        # 'retail' or 'forever' (WoW Forever look); '' = keep the one installed
 )
 
 $ErrorActionPreference = 'Stop'
@@ -222,6 +223,39 @@ if ((Resolve-Path $src).Path.TrimEnd('\') -ieq $dest.TrimEnd('\')) {
   }
 }
 
+# ---- game edition: Retail (the kit as it is) or WoW Forever (files from editions\forever laid over it)
+$edFile = Join-Path $dest '_system\edition.txt'
+if (-not $Edition) { try { $Edition = (Get-Content $edFile -ErrorAction Stop | Select-Object -First 1).Trim() } catch { $Edition = 'retail' } }
+$Edition = $(if ($Edition -match '^forever$') { 'forever' } else { 'retail' })
+function Set-Edition([string]$ed) {
+  $edSrc = Join-Path $src 'editions\forever'
+  if (-not (Test-Path $edSrc)) { $edSrc = Join-Path $dest 'editions\forever' }
+  if (-not (Test-Path $edSrc)) { return }
+  $bk = Join-Path $dest '_system\edition_backup'
+  foreach ($f in Get-ChildItem $edSrc -Recurse -File) {
+    $rel = $f.FullName.Substring($edSrc.TrimEnd('\').Length).TrimStart('\')
+    if ($rel -like 'streamdeck_icons\*') { continue }          # used for the Stream Deck page below
+    $d = Join-Path $dest $rel; $b = Join-Path $bk $rel
+    $isForever = (Test-Path $d) -and (Get-Item $d).Length -eq $f.Length
+    if ($ed -eq 'forever') {
+      if ($isForever) { continue }
+      if (Test-Path $d) { New-Item -ItemType Directory -Force -Path (Split-Path $b) | Out-Null; Copy-Item $d $b -Force }   # keep the Retail file
+      New-Item -ItemType Directory -Force -Path (Split-Path $d) | Out-Null
+      Copy-Item $f.FullName $d -Force
+    } elseif ($isForever) {
+      $r = Join-Path $src $rel
+      if ((Test-Path $r) -and (Get-Item $r).Length -ne $f.Length) { Copy-Item $r $d -Force }
+      elseif (Test-Path $b) { Copy-Item $b $d -Force }
+    }
+  }
+}
+try {
+  Set-Edition $Edition
+  New-Item -ItemType Directory -Force -Path (Split-Path $edFile) | Out-Null
+  Set-Content -Path $edFile -Value $Edition -Encoding ASCII
+  Say "    Look: $(if ($Edition -eq 'forever') { 'WoW Forever (gold + sapphire)' } else { 'Retail' })" 'Green'
+} catch { Say "    (Could not switch the look: $($_.Exception.Message))" 'Yellow' }
+
 $oldEditor = Join-Path $dest 'Customize overlays.html'          # replaced by "Customize overlays.bat"
 if (Test-Path $oldEditor) { Remove-Item $oldEditor -Force }
 
@@ -287,6 +321,11 @@ try {
   if (Test-Path $sdSrc) {
     $tmp = Join-Path $env:TEMP ('adfinem_sd_' + [guid]::NewGuid().ToString('N'))
     Copy-Item $sdSrc $tmp -Recurse
+    $fIcons = Join-Path $dest 'editions\forever\streamdeck_icons'
+    if ($Edition -eq 'forever' -and (Test-Path $fIcons)) {
+      Get-ChildItem $tmp -Recurse -Filter '*.png' | Where-Object { $_.Directory.Name -eq 'Images' } | ForEach-Object {
+        $fi = Join-Path $fIcons $_.Name; if (Test-Path $fi) { Copy-Item $fi $_.FullName -Force } }
+    }
     $editorPath = (Join-Path $dest 'Customize overlays.bat').Replace('\', '\\')
     Get-ChildItem $tmp -Recurse -Filter 'manifest.json' | ForEach-Object {
       $t = [IO.File]::ReadAllText($_.FullName).Replace('__EDITOR__', $editorPath)

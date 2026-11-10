@@ -184,7 +184,33 @@ $p.Controls.Add((New-Label 'ON THIS PC' 40 146 300 20 $F_BOLD $cCORAL))
 $obsLbl = New-Label '' 40 172 460 24 $F_BOLD $cTEXT; $p.Controls.Add($obsLbl)
 $btnObs = New-Button 'Install OBS (free)' 520 166 200 $true; $p.Controls.Add($btnObs)
 $slLbl = New-Label '' 40 202 680 22 $F_SMALL $cMUTED; $p.Controls.Add($slLbl)
-$p.Controls.Add((New-Label 'Next you pick your webcam and microphone. If OBS is open, the setup asks you to close it before it changes anything.' 40 250 680 44 $F_BODY $cMUTED))
+$p.Controls.Add((New-Label 'WHICH WORLD OF WARCRAFT DO YOU STREAM?' 40 238 500 20 $F_BOLD $cCORAL))
+# two clickable cards: Retail (coral) / WoW Forever (gold + blue). Picks the intro, outro, loops, colours and Stream Deck icons.
+$script:edition = 'retail'
+try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower(); if ($e0 -eq 'forever') { $script:edition = 'forever' } } catch {}
+$cards = @{}
+function New-EditionCard($key, $title, $sub, $img, $x) {
+  $c = New-Object System.Windows.Forms.Panel
+  $c.Location = New-Object System.Drawing.Point($x, 264); $c.Size = New-Object System.Drawing.Size(330, 74)
+  $c.BackColor = $cPANEL; $c.Cursor = 'Hand'; $c.Tag = $key
+  $pb = New-Object System.Windows.Forms.PictureBox
+  $pb.Location = New-Object System.Drawing.Point(12, 11); $pb.Size = New-Object System.Drawing.Size(52, 52); $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
+  try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir $img)) } catch {}
+  $l1 = New-Label $title 76 14 240 24 $F_BOLD $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key
+  $l2 = New-Label $sub 76 38 245 20 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key
+  $c.Controls.AddRange(@($pb, $l1, $l2))
+  $c.Add_Paint({ param($s, $e)
+    $sel = ($s.Tag -eq $script:edition)
+    $col = if ($sel) { if ($s.Tag -eq 'forever') { C 217 164 65 } else { $cCORAL } } else { $cLINE }
+    $pen = New-Object System.Drawing.Pen($col, $(if ($sel) { 3 } else { 1 }))
+    $e.Graphics.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose() })
+  $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() } }
+  foreach ($ctl in @($c, $pb, $l1, $l2)) { $ctl.Add_Click($pick) }
+  $pages[0].Controls.Add($c); $cards[$key] = $c
+}
+New-EditionCard 'retail' 'Retail' 'Live servers - the coral AD FINEM look' 'emblem.png' 40
+New-EditionCard 'forever' 'WoW Forever' 'Gold and sapphire look, Forever emblem' 'forever-emblem.png' 390
+$p.Controls.Add((New-Label 'You can switch later by running the setup again. Next you pick your webcam and microphone.' 40 348 680 22 $F_SMALL $cMUTED))
 function Update-ObsStatus {
   if ($script:obsExe) { $obsLbl.Text = "$([char]0x2713)  OBS Studio is installed"; $obsLbl.ForeColor = $cGREEN; $btnObs.Visible = $false }
   else { $obsLbl.Text = "$([char]0x2715)  OBS Studio is not installed"; $obsLbl.ForeColor = $cAMBER; $btnObs.Visible = $true }
@@ -300,6 +326,7 @@ function Start-Install {
   $f = @(); if ($ckNs.Checked) { $f += 'ns' }; if ($ckGate.Checked) { $f += 'gate' }; if ($ckComp.Checked) { $f += 'comp' }; if ($ckLimit.Checked) { $f += 'limit' }
   $fs = $f -join ','
   if ($fresh -or $fs -ne $origFilters) { $args2 += @('-MicFilters', $(if ($fs) { $fs } else { 'none' })) }
+  $args2 += @('-Edition', $script:edition)
   Remove-Item $outFile, $errFile -ErrorAction SilentlyContinue
   $script:proc = Start-Process powershell -ArgumentList $args2 -WindowStyle Hidden -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
   $null = $script:proc.Handle   # keep the handle so ExitCode is readable later (PowerShell quirk)
