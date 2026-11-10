@@ -258,6 +258,7 @@ function New-ForeverOverlays {
   foreach ($n in 'starting', 'brb', 'ending', 'ingame', 'alerts', 'sponsors') {
     $f = Join-Path $ov "$n.html"; if (-not (Test-Path $f)) { continue }
     $t = [IO.File]::ReadAllText($f, (New-Object Text.UTF8Encoding $false))
+    $t = $t.Replace('<script src="../settings.js"></script>', '<script>window.AF_SETTINGS_SRC = "../settings-forever.js";</script><script src="../settings-forever.js"></script>')
     $t = $t.Replace('<link rel="stylesheet" href="edition.css">', '<link rel="stylesheet" href="edition.css"><link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
     $t = $t.Replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
     $t = $t.Replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
@@ -268,8 +269,8 @@ function New-ForeverOverlays {
 
 # the kit's standard texts mention Mythic raiding - swap them for neutral ones with WoW Forever
 # (only texts still exactly as shipped; anything the streamer wrote themselves is left alone)
-function Set-EditionTexts([string]$ed) {
-  $map = Join-Path $dest 'editions\forever\texts.json'; $sf = Join-Path $dest 'settings.js'
+function Set-EditionTexts([string]$ed, [string]$sf = $null) {
+  $map = Join-Path $dest 'editions\forever\texts.json'; if (-not $sf) { $sf = Join-Path $dest 'settings.js' }
   if (-not (Test-Path $map) -or -not (Test-Path $sf)) { return }
   $utf8 = New-Object Text.UTF8Encoding $false
   $txt = [IO.File]::ReadAllText($sf, $utf8); $orig = $txt
@@ -282,10 +283,17 @@ function Set-EditionTexts([string]$ed) {
 }
 try {
   # both: the kit itself stays Retail, the Forever collection uses its own copies (below);
-  # the texts are shared, so they get the neutral (Forever) wording
+  # (each with its own settings file)
   Set-Edition $(if ($Edition -eq 'both') { 'retail' } else { $Edition })
-  Set-EditionTexts $(if ($Edition -eq 'retail') { 'retail' } else { 'forever' })
-  if ($Edition -eq 'both') { New-ForeverOverlays }
+  if ($Edition -eq 'both') {
+    # each collection gets its own settings: settings.js (Retail) and settings-forever.js (WoW Forever)
+    $sfF = Join-Path $dest 'settings-forever.js'
+    if (-not (Test-Path $sfF) -and (Test-Path (Join-Path $dest 'settings.js'))) { Copy-Item (Join-Path $dest 'settings.js') $sfF }
+    Set-EditionTexts 'forever' $sfF
+    Set-EditionTexts 'retail'
+    New-ForeverOverlays
+  } else { Set-EditionTexts $Edition }
+  [IO.File]::WriteAllText((Join-Path $dest '_system\edition.js'), "window.AF_EDITION = `"$Edition`";`n", (New-Object Text.UTF8Encoding $false))
   New-Item -ItemType Directory -Force -Path (Split-Path $edFile) | Out-Null
   Set-Content -Path $edFile -Value $Edition -Encoding ASCII
   Say "    Look: $(@{ forever = 'WoW Forever (gold + sapphire)'; both = 'Retail AND WoW Forever (two scene collections)'; retail = 'Retail' }[$Edition])" 'Green'

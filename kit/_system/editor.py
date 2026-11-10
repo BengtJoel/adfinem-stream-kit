@@ -116,14 +116,17 @@ class Handler(BaseHTTPRequestHandler):
             text = self.rfile.read(n).decode("utf-8", "replace")
             if not re.search(r"window\.AF_SETTINGS\s*=", text):
                 return self.json(400, {"ok": False, "error": "not a settings file"})
-            if os.path.exists(SETTINGS):
+            # ?file=settings-forever = the WoW Forever collection's own settings (Retail + Forever installed)
+            q = parse_qs(urlsplit(self.path).query)
+            sp = os.path.join(ROOT, "settings-forever.js") if q.get("file", [""])[0] == "settings-forever" else SETTINGS
+            if os.path.exists(sp):
                 bk = os.path.join(ROOT, "_system", "backup")
                 os.makedirs(bk, exist_ok=True)
-                shutil.copy2(SETTINGS, os.path.join(bk, "settings_previous.js"))
-            with open(SETTINGS, "w", encoding="utf-8", newline="") as f:
+                shutil.copy2(sp, os.path.join(bk, os.path.basename(sp)[:-3] + "_previous.js"))
+            with open(sp, "w", encoding="utf-8", newline="") as f:
                 f.write(text)
-            print("  Saved", datetime.datetime.now().strftime("%H:%M:%S"), flush=True)
-            return self.json(200, {"ok": True, "path": SETTINGS})
+            print("  Saved", os.path.basename(sp), datetime.datetime.now().strftime("%H:%M:%S"), flush=True)
+            return self.json(200, {"ok": True, "path": sp})
         if path == "/api/upload":   # sponsor logos, saved in the kit's "sponsors" folder
             if not ok_token:
                 return self.json(403, {"ok": False, "error": "not allowed"})

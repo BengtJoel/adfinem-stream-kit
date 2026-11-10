@@ -2,6 +2,9 @@
 <html lang="en"><head><meta charset="utf-8">
 <title>AD FINEM - Customize overlays</title>
 <link rel="stylesheet" href="../overlays/af.css">
+<script src="../_system/edition.js" onerror="window.AF_EDITION = null"></script>
+<script src="../settings-forever.js" onerror="window.AF_SETTINGS = undefined"></script>
+<script>window.AF_SETTINGS_FOREVER = window.AF_SETTINGS || null; window.AF_SETTINGS = undefined;</script>
 <script src="../settings.js"></script>
 <script src="../overlays/twitch-app.js"></script>
 <script src="../_system/twitch_auth.js" onerror="window.AF_TWITCH_AUTH = null"></script>
@@ -35,6 +38,7 @@
   .btn.primary { color: #0A0C11; border: 0; background: linear-gradient(135deg, var(--coral), var(--amber)); box-shadow: 0 8px 24px -10px rgba(238,154,91,.8); }
   .stage { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; border: 1px solid rgba(203,213,235,.1);
     background: #000 url("../overlays/img/preview_bg.jpg") center/cover; }
+  .stage.forever { background-image: url("../editions/forever/overlays/img/preview_bg.jpg"); }
   .stage.game { background: radial-gradient(ellipse at 30% 40%, #3a4a3a, #1d241f 60%, #0e120f); }
   .stage iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; background: transparent; }
   .pv-title { font: 600 12px/1 "Archivo", sans-serif; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; }
@@ -63,6 +67,13 @@
   .logorow .thumb { width: 64px; height: 44px; flex: none; border-radius: 6px; background: #0A0C11 center/contain no-repeat; border: 1px solid rgba(203,213,235,.10); }
   .logorow input[type=text] { flex: 1; }
   .kitver { position: fixed; left: 26px; bottom: 78px; font-size: 11px; color: rgba(152,160,176,.6); letter-spacing: .08em; }
+  .looks { display: none; gap: 6px; margin: 0 0 18px; padding: 5px; background: #11141C; border: 1px solid rgba(203,213,235,.10); border-radius: 8px; }
+  .looks.on { display: flex; }
+  .looks button { flex: 1; font: 700 12px/1 "Archivo", sans-serif; letter-spacing: .16em; text-transform: uppercase; padding: 11px 8px;
+    color: var(--muted); background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
+  .looks button.on[data-look="retail"] { color: #0A0C11; background: linear-gradient(135deg, #E8785A, #F0B05C); }
+  .looks button.on[data-look="forever"] { color: #0A0C11; background: linear-gradient(135deg, #D9A441, #F6D98F); }
+  .looks + .hint { margin: -10px 0 18px; }
   .savedpath { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
 </style></head>
 <body>
@@ -74,6 +85,8 @@
     <b>AD FINEM - Customize overlays</b> shortcut on your desktop. Then Save goes straight to the right place.
     Opened like this, Save can only download the file.</div>
   <div class="warn" id="upd" style="border-color:rgba(240,176,92,.55);background:rgba(240,176,92,.10)"></div>
+  <div class="looks" id="looks"><button data-look="retail" class="on">Retail</button><button data-look="forever">WoW Forever</button></div>
+  <div class="hint" id="lookhint" style="display:none">Two scene collections in OBS - each has its own texts, pill and sponsors. Save stores both.</div>
   <div class="tabs" id="tabs"></div>
 
   <fieldset data-tab="general" data-preview="starting">
@@ -236,18 +249,27 @@ const ALERT_DEFAULTS = { mode: "twitch", url: "", follows: true, subs: true, gif
   minBits: 1, minRaid: 1, followText: "NEW FOLLOWER", subText: "JUST SUBSCRIBED", resubText: "SUBSCRIBED · {months} MONTHS",
   giftText: "GIFTED {amount} SUBS", bitsText: "CHEERED {amount} BITS", raidText: "RAIDING WITH {amount}",
   duration: 7, volume: 70, sound: true, position: "center" };
-if (window.AF_SETTINGS) window.AF_SETTINGS.alerts = Object.assign({}, ALERT_DEFAULTS, window.AF_SETTINGS.alerts || {});
 const INGAME_DEFAULTS = { pill: "auto", goalType: "followers", goalTarget: 100, goalLabel: "", goalAutoNext: true };
-if (window.AF_SETTINGS) window.AF_SETTINGS.ingame = Object.assign({}, INGAME_DEFAULTS, window.AF_SETTINGS.ingame || {});
 const SPONSOR_DEFAULTS = { enabled: false, heading: "PARTNERED WITH", showHeading: true, style: "card", position: "bottom-right",
   scale: 100, margin: 32, mode: "rotate", seconds: 12, everyMinutes: 10, showSeconds: 30, showTimer: true,
   scenes: { starting: true, ingame: true, brb: true, ending: true }, items: [] };
-if (window.AF_SETTINGS) {
-  const sp = window.AF_SETTINGS.sponsors || {};
-  window.AF_SETTINGS.sponsors = Object.assign({}, SPONSOR_DEFAULTS, sp, { scenes: Object.assign({}, SPONSOR_DEFAULTS.scenes, sp.scenes || {}) });
+function withDefaults(o) {
+  if (!o) return o;
+  o.alerts = Object.assign({}, ALERT_DEFAULTS, o.alerts || {});
+  o.ingame = Object.assign({}, INGAME_DEFAULTS, o.ingame || {});
+  const sp = o.sponsors || {};
+  o.sponsors = Object.assign({}, SPONSOR_DEFAULTS, sp, { scenes: Object.assign({}, SPONSOR_DEFAULTS.scenes, sp.scenes || {}) });
+  return o;
 }
-const ORIGINAL = JSON.parse(JSON.stringify(window.AF_SETTINGS || {}));
-let S = JSON.parse(JSON.stringify(ORIGINAL));
+withDefaults(window.AF_SETTINGS); withDefaults(window.AF_SETTINGS_FOREVER);
+// Retail + WoW Forever installed side by side: each look has its own settings file
+const BOTH = window.AF_EDITION === "both" && !!window.AF_SETTINGS_FOREVER;
+const LOOKS = { retail: { file: "settings", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS || {})) } };
+if (BOTH) LOOKS.forever = { file: "settings-forever", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS_FOREVER)) };
+for (const k in LOOKS) LOOKS[k].cur = JSON.parse(JSON.stringify(LOOKS[k].orig));
+let look = "retail";
+let ORIGINAL = LOOKS.retail.orig;
+let S = LOOKS.retail.cur;
 const TABS = [["general", "General"], ["starting", "Starting"], ["brb", "BRB"], ["ending", "Ending"], ["in-game", "In-game"], ["sponsors", "Sponsors"], ["alerts", "Alerts"]];
 const sets = [...document.querySelectorAll("fieldset")];
 let current = "general";
@@ -283,10 +305,11 @@ function preview() {
     const fs = sets.find(f => f.dataset.tab === current);
     const page = fs.dataset.preview;
     document.getElementById("stage").classList.toggle("game", page === "ingame" || page === "alerts" || page === "sponsors");
+    document.getElementById("stage").classList.toggle("forever", look === "forever");
     document.querySelectorAll("[data-mode]").forEach(d => d.style.display = ((S.sponsors || {}).mode === d.dataset.mode) ? "" : "none");
     document.querySelectorAll("[data-show]").forEach(d => d.classList.toggle("on", d.dataset.show === ((S.alerts || {}).mode || "twitch")));
     document.getElementById("pvtitle").textContent = "Preview - " + ({ starting: "Starting Soon", brb: "Be Right Back", ending: "Ending", ingame: "In-game", alerts: "Alerts", sponsors: "Sponsors" })[page];
-    document.getElementById("pv").src = `../overlays/${page}.html?t=${Date.now()}#s=${encodeURIComponent(encode(S))}${page === "alerts" ? "&demo=" + lastTest : ""}`;
+    document.getElementById("pv").src = `../overlays/${page}${look === "forever" ? "-forever" : ""}.html?t=${Date.now()}#s=${encodeURIComponent(encode(S))}${page === "alerts" ? "&demo=" + lastTest : ""}`;
   }, 250);
 }
 
@@ -302,14 +325,14 @@ function show(tab) {
   preview();
 }
 
-function settingsFile() {
+function settingsFile(obj = S) {
   return `/* =====================================================================
    AD FINEM STREAM KIT - ALL TEXT IN ONE PLACE
    Easiest: open "Customize overlays" and click Save.
    Or edit the text between the quotes below in Notepad and save.
    OBS picks up the changes by itself within a few seconds.
    ===================================================================== */
-window.AF_SETTINGS = ${JSON.stringify(S, null, 2)};
+window.AF_SETTINGS = ${JSON.stringify(obj, null, 2)};
 `;
 }
 
@@ -327,10 +350,17 @@ async function save() {
   const text = settingsFile();
   if (SERVED) {
     try {
-      const r = await fetch("/api/save", { method: "POST", headers: { "X-AF-Token": TOKEN, "Content-Type": "text/javascript" }, body: text });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error || "save failed");
-      toast(`<b>Saved.</b> OBS updates by itself within a few seconds.<div class="savedpath">${j.path}</div>`);
+      LOOKS[look].cur = S;
+      const paths = [];
+      for (const k of Object.keys(LOOKS)) {     // Retail + Forever: save both looks
+        const r = await fetch("/api/save" + (LOOKS[k].file === "settings" ? "" : "?file=" + LOOKS[k].file),
+          { method: "POST", headers: { "X-AF-Token": TOKEN, "Content-Type": "text/javascript" }, body: settingsFile(LOOKS[k].cur) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || "save failed");
+        LOOKS[k].orig = JSON.parse(JSON.stringify(LOOKS[k].cur)); paths.push(j.path);
+      }
+      ORIGINAL = LOOKS[look].orig;
+      toast(`<b>Saved${BOTH ? " - Retail and WoW Forever" : ""}.</b> OBS updates by itself within a few seconds.<div class="savedpath">${paths.join("<br>")}</div>`);
     } catch (e) {
       toast("<b>Couldn't save.</b> Is the editor helper still running? Start <b>Customize overlays</b> again.", 12000);
     }
@@ -514,7 +544,19 @@ document.getElementById("tabs").innerHTML = TABS.map(([t, n]) => `<button data-t
 document.getElementById("tabs").addEventListener("click", e => { if (e.target.dataset.t) show(e.target.dataset.t); });
 document.querySelectorAll("[data-k]").forEach(el => el.addEventListener("input", () => { read(el); preview(); }));
 document.getElementById("save").addEventListener("click", save);
-document.getElementById("reset").addEventListener("click", () => { S = JSON.parse(JSON.stringify(ORIGINAL)); fill(); renderSponsors(); preview(); toast("Changes undone."); });
+document.getElementById("reset").addEventListener("click", () => { S = LOOKS[look].cur = JSON.parse(JSON.stringify(ORIGINAL)); fill(); renderSponsors(); preview(); toast("Changes undone."); });
+if (BOTH) {
+  document.getElementById("looks").classList.add("on");
+  document.getElementById("lookhint").style.display = "";
+  document.getElementById("looks").addEventListener("click", e => {
+    const k = e.target.dataset && e.target.dataset.look;
+    if (!k || k === look || !LOOKS[k]) return;
+    LOOKS[look].cur = S;
+    look = k; ORIGINAL = LOOKS[k].orig; S = LOOKS[k].cur;
+    document.querySelectorAll("#looks button").forEach(b => b.classList.toggle("on", b.dataset.look === k));
+    fill(); renderSponsors(); preview();
+  });
+}
 window.addEventListener("resize", scale);
 if (!SERVED) document.getElementById("warn").classList.add("on");
 if (!window.AF_SETTINGS) toast("Couldn't read <b>settings.js</b>. Keep this page in the AD FINEM Stream Kit folder.", 12000);

@@ -125,14 +125,16 @@ while (-not $stop) {
       if ($req.Headers['x-af-token'] -ne $token) { Send $stream 403 'application/json' (Json @{ ok = $false; error = 'not allowed' }); continue }
       $text = [Text.Encoding]::UTF8.GetString($req.Body)
       if ($text -notmatch 'window\.AF_SETTINGS\s*=' -or $text.Length -gt 500000) { Send $stream 400 'application/json' (Json @{ ok = $false; error = 'not a settings file' }); continue }
-      if (Test-Path $settingsPath) {
+      # ?file=settings-forever = the WoW Forever collection's own settings (Retail + Forever installed)
+      $sp = $(if ($query -match '(?:^|&)file=settings-forever(?:&|$)') { Join-Path $root 'settings-forever.js' } else { $settingsPath })
+      if (Test-Path $sp) {
         $bk = Join-Path $root '_system\backup'
         New-Item -ItemType Directory -Force -Path $bk | Out-Null
-        Copy-Item $settingsPath (Join-Path $bk 'settings_previous.js') -Force
+        Copy-Item $sp (Join-Path $bk ([IO.Path]::GetFileNameWithoutExtension($sp) + '_previous.js')) -Force
       }
-      [IO.File]::WriteAllText($settingsPath, $text, (New-Object Text.UTF8Encoding $false))
-      Write-Host ("  Saved " + (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
-      Send $stream 200 'application/json' (Json @{ ok = $true; path = $settingsPath })
+      [IO.File]::WriteAllText($sp, $text, (New-Object Text.UTF8Encoding $false))
+      Write-Host ("  Saved " + (Split-Path $sp -Leaf) + ' ' + (Get-Date -Format 'HH:mm:ss')) -ForegroundColor Green
+      Send $stream 200 'application/json' (Json @{ ok = $true; path = $sp })
       continue
     }
     if ($path -eq '/api/version' -or ($req.Method -eq 'POST' -and $path -eq '/api/update')) {

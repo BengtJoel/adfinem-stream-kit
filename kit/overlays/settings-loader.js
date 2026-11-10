@@ -1,4 +1,4 @@
-/* Reads ../settings.js (or a live preview from the Customize page via #s=...) and exposes AF_GET(section). */
+/* Reads ../settings.js (or ../settings-forever.js for the Forever collection) (or a live preview from the Customize page via #s=...) and exposes AF_GET(section). */
 (function () {
   function fromHash() {
     const m = location.hash.match(/[#&]s=([^&]+)/);
@@ -15,7 +15,7 @@
     const check = () => {
       const tag = document.createElement("script");
       const keep = window.AF_SETTINGS;
-      tag.src = "../settings.js?v=" + Date.now();
+      tag.src = (window.AF_SETTINGS_SRC || "../settings.js") + "?v=" + Date.now();   // the Forever copies use settings-forever.js
       tag.onload = () => {
         const fresh = JSON.stringify(window.AF_SETTINGS || null);
         tag.remove();

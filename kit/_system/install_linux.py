@@ -203,10 +203,10 @@ def pick_edition(dest):
     return "retail"
 
 
-def set_edition_texts(dest, ed):
+def set_edition_texts(dest, ed, sf=None):
     """Swaps the shipped Mythic-raiding texts for neutral ones with WoW Forever (only texts nobody changed)."""
     import re
-    mp, sf = os.path.join(dest, "editions", "forever", "texts.json"), os.path.join(dest, "settings.js")
+    mp, sf = os.path.join(dest, "editions", "forever", "texts.json"), sf or os.path.join(dest, "settings.js")
     if not (os.path.exists(mp) and os.path.exists(sf)):
         return
     with open(mp, encoding="utf-8") as f:
@@ -240,6 +240,8 @@ def make_forever_overlays(dest):
             continue
         with open(src, encoding="utf-8") as f:
             t = f.read()
+        t = t.replace('<script src="../settings.js"></script>',
+                      '<script>window.AF_SETTINGS_SRC = "../settings-forever.js";</script><script src="../settings-forever.js"></script>')
         t = t.replace('<link rel="stylesheet" href="edition.css">',
                       '<link rel="stylesheet" href="edition.css"><link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
         t = t.replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
@@ -293,9 +295,17 @@ def apply_edition(dest):
                     shutil.copy2(r, d)
                 elif os.path.exists(b):
                     shutil.copy2(b, d)
-    set_edition_texts(dest, "retail" if choice == "retail" else "forever")
-    if choice == "both":
+    if choice == "both":   # each collection gets its own settings: settings.js (Retail), settings-forever.js (Forever)
+        sf, sff = os.path.join(dest, "settings.js"), os.path.join(dest, "settings-forever.js")
+        if not os.path.exists(sff) and os.path.exists(sf):
+            shutil.copy2(sf, sff)
+        set_edition_texts(dest, "forever", sff)
+        set_edition_texts(dest, "retail")
         make_forever_overlays(dest)
+    else:
+        set_edition_texts(dest, choice)
+    with open(os.path.join(dest, "_system", "edition.js"), "w", encoding="utf-8") as f:
+        f.write(f'window.AF_EDITION = "{choice}";\n')
     ed = choice
     with open(os.path.join(dest, "_system", "edition.txt"), "w", encoding="utf-8") as f:
         f.write(ed + "\n")

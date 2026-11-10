@@ -10,6 +10,8 @@ INSTALL (2 minutes)
      sapphire, with the Forever emblem, intro, outro and stinger), or
      Both - then OBS gets two scene collections, "AD FINEM" and
      "AD FINEM Forever"; switch with the Scene Collection menu.
+     With Both, Customize overlays has a Retail / WoW Forever switch at
+     the top: each look has its own texts, pill and sponsors.
      Change it any time by running the setup again.
   4. Open OBS > menu Scene Collection > AD FINEM.
   5. Settings > Video: Base and Output resolution = 1920x1080.
