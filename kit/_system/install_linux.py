@@ -199,6 +199,31 @@ def pick_edition(dest):
     return "retail"
 
 
+def set_edition_texts(dest, ed):
+    """Swaps the shipped Mythic-raiding texts for neutral ones with WoW Forever (only texts nobody changed)."""
+    import re
+    mp, sf = os.path.join(dest, "editions", "forever", "texts.json"), os.path.join(dest, "settings.js")
+    if not (os.path.exists(mp) and os.path.exists(sf)):
+        return
+    with open(mp, encoding="utf-8") as f:
+        pairs = json.load(f)
+    with open(sf, encoding="utf-8") as f:
+        txt = orig = f.read()
+    for e in pairs:
+        if ed == "forever":
+            frm, to = e["retail"], e["forever"]
+        elif e.get("back"):
+            frm, to = e["forever"], e["retail"]
+        else:
+            continue
+        pat = r'("' + re.escape(e["key"]) + r'"\s*:\s*)"' + re.escape(frm) + '"'
+        txt = re.sub(pat, lambda m: m.group(1) + '"' + to + '"', txt)
+    if txt != orig:
+        with open(sf, "w", encoding="utf-8") as f:
+            f.write(txt)
+        say("    Standard texts set for this game (your own texts were kept).")
+
+
 def apply_edition(dest):
     """Lays editions/forever over the kit (videos, colours, emblem) or puts the Retail files back."""
     ed = pick_edition(dest)
@@ -211,6 +236,8 @@ def apply_edition(dest):
         if rel_root.split(os.sep)[0] == "streamdeck_icons":
             continue
         for f in files:
+            if rel_root == "." and f == "texts.json":
+                continue
             rel = os.path.normpath(os.path.join(rel_root, f))
             fs, d, b = os.path.join(root, f), os.path.join(dest, rel), os.path.join(bk, rel)
             is_forever = os.path.exists(d) and os.path.getsize(d) == os.path.getsize(fs)
@@ -226,6 +253,7 @@ def apply_edition(dest):
                     shutil.copy2(r, d)
                 elif os.path.exists(b):
                     shutil.copy2(b, d)
+    set_edition_texts(dest, ed)
     with open(os.path.join(dest, "_system", "edition.txt"), "w", encoding="utf-8") as f:
         f.write(ed + "\n")
     say("    Look: " + ("WoW Forever (gold + sapphire)" if ed == "forever" else "Retail"), GREEN)

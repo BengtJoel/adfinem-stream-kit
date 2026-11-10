@@ -1,0 +1,8 @@
+[
+  { "key": "subtitle",       "retail": "Mythic raid night · Mon, Wed & Sun · 21:00 CET", "forever": "Raid night · Mon, Wed & Sun · 21:00 CET", "back": true },
+  { "key": "recruitingText", "retail": "Mythic raiders — apply at",                      "forever": "Raiders wanted — apply at",               "back": true },
+  { "key": "fallbackLabel",  "retail": "MYTHIC",                                         "forever": "RAID",                                    "back": true },
+  { "key": "fallbackValue",  "retail": "6/8",                                            "forever": "",                                        "back": false },
+  { "key": "fallbackRaid",   "retail": "THE VENOMOUS ABYSS",                             "forever": "",                                        "back": false },
+  { "key": "raid",           "retail": "the-venomous-abyss",                             "forever": "auto",                                    "back": false }
+]

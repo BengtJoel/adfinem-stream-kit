@@ -237,7 +237,7 @@ function Set-Edition([string]$ed) {
   $bk = Join-Path $dest '_system\edition_backup'
   foreach ($f in Get-ChildItem $edSrc -Recurse -File) {
     $rel = $f.FullName.Substring($edSrc.TrimEnd('\').Length).TrimStart('\')
-    if ($rel -like 'streamdeck_icons\*') { continue }          # used for the Stream Deck page below
+    if ($rel -like 'streamdeck_icons\*' -or $rel -eq 'texts.json') { continue }   # Stream Deck icons + standard texts are used separately
     $d = Join-Path $dest $rel; $b = Join-Path $bk $rel
     $isForever = (Test-Path $d) -and (Get-Item $d).Length -eq $f.Length
     if ($ed -eq 'forever') {
@@ -252,8 +252,23 @@ function Set-Edition([string]$ed) {
     }
   }
 }
+# the kit's standard texts mention Mythic raiding - swap them for neutral ones with WoW Forever
+# (only texts still exactly as shipped; anything the streamer wrote themselves is left alone)
+function Set-EditionTexts([string]$ed) {
+  $map = Join-Path $dest 'editions\forever\texts.json'; $sf = Join-Path $dest 'settings.js'
+  if (-not (Test-Path $map) -or -not (Test-Path $sf)) { return }
+  $utf8 = New-Object Text.UTF8Encoding $false
+  $txt = [IO.File]::ReadAllText($sf, $utf8); $orig = $txt
+  foreach ($e in @([IO.File]::ReadAllText($map, $utf8) | ConvertFrom-Json)) {
+    if ($ed -eq 'forever') { $from = $e.retail; $to = $e.forever } elseif ($e.back) { $from = $e.forever; $to = $e.retail } else { continue }
+    $pat = '("' + [regex]::Escape($e.key) + '"\s*:\s*)"' + [regex]::Escape($from) + '"'
+    $txt = [regex]::Replace($txt, $pat, { param($m) $m.Groups[1].Value + '"' + $to + '"' })
+  }
+  if ($txt -ne $orig) { [IO.File]::WriteAllText($sf, $txt, $utf8); Say '    Standard texts set for this game (your own texts were kept).' 'Gray' }
+}
 try {
   Set-Edition $Edition
+  Set-EditionTexts $Edition
   New-Item -ItemType Directory -Force -Path (Split-Path $edFile) | Out-Null
   Set-Content -Path $edFile -Value $Edition -Encoding ASCII
   Say "    Look: $(if ($Edition -eq 'forever') { 'WoW Forever (gold + sapphire)' } else { 'Retail' })" 'Green'
