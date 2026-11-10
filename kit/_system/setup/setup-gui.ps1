@@ -2,6 +2,11 @@
 # Started by the Setup .exe. Asks for webcam + microphone, then runs ..\install.ps1 -Quiet
 # and shows its progress. install.ps1 does the real work (same as INSTALL.bat).
 $ErrorActionPreference = 'Stop'
+$errLog = Join-Path $env:TEMP 'adfinem_setup_gui_error.txt'
+trap {   # anything unexpected: write it down and let the Setup .exe use the text installer instead
+  try { "$(Get-Date -Format s)  $($_.Exception.Message)`r`n$($_.InvocationInfo.PositionMessage)`r`n$($_.ScriptStackTrace)" | Out-File $errLog -Encoding UTF8 } catch {}
+  exit 1
+}
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -18,19 +23,22 @@ $obsJson  = Join-Path $env:APPDATA 'obs-studio\basic\scenes\AD_FINEM.json'
 
 # ------------------------------------------------------------------ look & feel
 function C($r, $g, $b) { [System.Drawing.Color]::FromArgb($r, $g, $b) }
-$BG = C 10 12 17; $PANEL = C 18 22 31; $LINE = C 34 40 54; $TEXT = C 238 241 246; $MUTED = C 152 160 176
-$CORAL = C 232 120 90; $AMBER = C 240 176 92; $GREEN = C 120 200 140
+$cBG = C 10 12 17; $cPANEL = C 18 22 31; $cLINE = C 34 40 54; $cTEXT = C 238 241 246; $cMUTED = C 152 160 176
+$cCORAL = C 232 120 90; $cAMBER = C 240 176 92; $cGREEN = C 120 200 140
 $fonts = New-Object System.Drawing.Text.PrivateFontCollection
 try { $fonts.AddFontFile((Join-Path $setupDir 'Archivo-ExtraBold.ttf')) } catch {}
 function HeadFont($size) {
-  if ($fonts.Families.Count) { New-Object System.Drawing.Font($fonts.Families[0], $size, [System.Drawing.FontStyle]::Regular) }
-  else { New-Object System.Drawing.Font('Segoe UI Semibold', $size) }
+  if ($fonts.Families.Count) {
+    $fam = $fonts.Families[0]
+    foreach ($st in 'Regular', 'Bold') { try { if ($fam.IsStyleAvailable($st)) { return New-Object System.Drawing.Font($fam, [single]$size, [System.Drawing.FontStyle]$st) } } catch {} }
+  }
+  return New-Object System.Drawing.Font('Segoe UI Semibold', [single]$size)
 }
 $F_BODY = New-Object System.Drawing.Font('Segoe UI', 10)
 $F_SMALL = New-Object System.Drawing.Font('Segoe UI', 9)
 $F_BOLD = New-Object System.Drawing.Font('Segoe UI Semibold', 10)
 
-function New-Label($text, $x, $y, $w, $h, $font = $F_BODY, $color = $TEXT) {
+function New-Label($text, $x, $y, $w, $h, $font = $F_BODY, $color = $cTEXT) {
   $l = New-Object System.Windows.Forms.Label
   $l.Text = $text; $l.Location = New-Object System.Drawing.Point($x, $y); $l.Size = New-Object System.Drawing.Size($w, $h)
   $l.Font = $font; $l.ForeColor = $color; $l.BackColor = [System.Drawing.Color]::Transparent
@@ -40,19 +48,19 @@ function New-Button($text, $x, $y, $w, $primary = $false) {
   $b = New-Object System.Windows.Forms.Button
   $b.Text = $text; $b.Location = New-Object System.Drawing.Point($x, $y); $b.Size = New-Object System.Drawing.Size($w, 36)
   $b.FlatStyle = 'Flat'; $b.Font = $F_BOLD; $b.Cursor = 'Hand'
-  if ($primary) { $b.BackColor = $CORAL; $b.ForeColor = $BG; $b.FlatAppearance.BorderSize = 0 }
-  else { $b.BackColor = $PANEL; $b.ForeColor = $TEXT; $b.FlatAppearance.BorderColor = $LINE }
+  if ($primary) { $b.BackColor = $cCORAL; $b.ForeColor = $cBG; $b.FlatAppearance.BorderSize = 0 }
+  else { $b.BackColor = $cPANEL; $b.ForeColor = $cTEXT; $b.FlatAppearance.BorderColor = $cLINE }
   return $b
 }
 function New-Check($text, $sub, $x, $y, $checked) {
   $c = New-Object System.Windows.Forms.CheckBox
   $c.Text = $text; $c.Checked = $checked; $c.Location = New-Object System.Drawing.Point($x, $y); $c.Size = New-Object System.Drawing.Size(320, 22)
-  $c.Font = $F_BOLD; $c.ForeColor = $TEXT; $c.BackColor = [System.Drawing.Color]::Transparent; $c.FlatStyle = 'Flat'
+  $c.Font = $F_BOLD; $c.ForeColor = $cTEXT; $c.BackColor = [System.Drawing.Color]::Transparent; $c.FlatStyle = 'Flat'
   $pages[1].Controls.Add($c)
-  $pages[1].Controls.Add((New-Label $sub ($x + 20) ($y + 22) 320 20 $F_SMALL $MUTED))
+  $pages[1].Controls.Add((New-Label $sub ($x + 20) ($y + 22) 320 20 $F_SMALL $cMUTED))
   return $c
 }
-function Style-Combo($cb) { $cb.BackColor = $PANEL; $cb.ForeColor = $TEXT; $cb.FlatStyle = 'Flat'; $cb.Font = $F_BODY }
+function Style-Combo($cb) { $cb.BackColor = $cPANEL; $cb.ForeColor = $cTEXT; $cb.FlatStyle = 'Flat'; $cb.Font = $F_BODY }
 
 # ------------------------------------------------------------------ what's on this PC
 function Find-Obs {
@@ -124,36 +132,36 @@ $form = New-Object System.Windows.Forms.Form
 $form.Text = 'AD FINEM Stream Kit Setup'
 $form.ClientSize = New-Object System.Drawing.Size(760, 540)
 $form.StartPosition = 'CenterScreen'; $form.FormBorderStyle = 'FixedSingle'; $form.MaximizeBox = $false
-$form.BackColor = $BG; $form.ForeColor = $TEXT; $form.Font = $F_BODY
+$form.BackColor = $cBG; $form.ForeColor = $cTEXT; $form.Font = $F_BODY
 try { $form.Icon = New-Object System.Drawing.Icon((Join-Path $sysDir 'adfinem.ico')) } catch {}
 
 $header = New-Object System.Windows.Forms.Panel
-$header.Location = New-Object System.Drawing.Point(0, 0); $header.Size = New-Object System.Drawing.Size(760, 92); $header.BackColor = $PANEL
+$header.Location = New-Object System.Drawing.Point(0, 0); $header.Size = New-Object System.Drawing.Size(760, 92); $header.BackColor = $cPANEL
 $header.Add_Paint({ param($s, $e)
   $r = New-Object System.Drawing.Rectangle(0, 89, 760, 3)
-  $br = New-Object System.Drawing.Drawing2D.LinearGradientBrush($r, $CORAL, $AMBER, 0.0)
+  $br = New-Object System.Drawing.Drawing2D.LinearGradientBrush($r, $cCORAL, $cAMBER, 0.0)
   $e.Graphics.FillRectangle($br, $r); $br.Dispose() })
 $logo = New-Object System.Windows.Forms.PictureBox
-$logo.Location = New-Object System.Drawing.Point(26, 18); $logo.Size = New-Object System.Drawing.Size(56, 56); $logo.SizeMode = 'Zoom'; $logo.BackColor = $PANEL
+$logo.Location = New-Object System.Drawing.Point(26, 18); $logo.Size = New-Object System.Drawing.Size(56, 56); $logo.SizeMode = 'Zoom'; $logo.BackColor = $cPANEL
 try { $logo.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir 'emblem.png')) } catch {}
 $header.Controls.Add($logo)
-$t1 = New-Label 'AD FINEM' 96 18 400 34 (HeadFont 20) $TEXT; $t1.BackColor = $PANEL; $header.Controls.Add($t1)
+$t1 = New-Label 'AD FINEM' 96 18 400 34 (HeadFont 20) $cTEXT; $t1.BackColor = $cPANEL; $header.Controls.Add($t1)
 $sub = if ($updating -and $oldVer -and $oldVer.Trim() -ne $newVer) { "STREAM KIT  -  UPDATE $($oldVer.Trim()) > $newVer" } elseif ($updating) { "STREAM KIT $newVer  -  REINSTALL" } else { "STREAM KIT $newVer  -  SETUP" }
-$t2 = New-Label $sub 98 54 500 22 $F_BOLD $AMBER; $t2.BackColor = $PANEL; $header.Controls.Add($t2)
+$t2 = New-Label $sub 98 54 500 22 $F_BOLD $cAMBER; $t2.BackColor = $cPANEL; $header.Controls.Add($t2)
 $form.Controls.Add($header)
 
 $pages = @()
 for ($i = 0; $i -lt 4; $i++) {
   $p = New-Object System.Windows.Forms.Panel
-  $p.Location = New-Object System.Drawing.Point(0, 92); $p.Size = New-Object System.Drawing.Size(760, 384); $p.BackColor = $BG; $p.Visible = ($i -eq 0)
+  $p.Location = New-Object System.Drawing.Point(0, 92); $p.Size = New-Object System.Drawing.Size(760, 384); $p.BackColor = $cBG; $p.Visible = ($i -eq 0)
   $form.Controls.Add($p); $pages += $p
 }
 $footer = New-Object System.Windows.Forms.Panel
-$footer.Location = New-Object System.Drawing.Point(0, 476); $footer.Size = New-Object System.Drawing.Size(760, 64); $footer.BackColor = $PANEL
+$footer.Location = New-Object System.Drawing.Point(0, 476); $footer.Size = New-Object System.Drawing.Size(760, 64); $footer.BackColor = $cPANEL
 $form.Controls.Add($footer)
 $btnBack = New-Button 'Back' 402 14 100; $btnNext = New-Button 'Next' 512 14 110 $true; $btnCancel = New-Button 'Cancel' 632 14 100
 $footer.Controls.AddRange(@($btnBack, $btnNext, $btnCancel))
-$dots = New-Label '' 26 22 300 20 $F_SMALL $MUTED; $dots.BackColor = $PANEL; $footer.Controls.Add($dots)
+$dots = New-Label '' 26 22 300 20 $F_SMALL $cMUTED; $dots.BackColor = $cPANEL; $footer.Controls.Add($dots)
 
 # ------------------------------------------------------------------ page 1: welcome
 $p = $pages[0]
@@ -163,15 +171,15 @@ $intro = if ($updating) {
 } else {
   "This sets up everything for streaming in Ad Finem colours: OBS scenes with intro, outro and transitions, the in-game overlay with live raid progress, alerts, sponsors, the overlay editor and a Stream Deck page."
 }
-$p.Controls.Add((New-Label $intro 40 70 680 60 $F_BODY $MUTED))
-$p.Controls.Add((New-Label 'ON THIS PC' 40 146 300 20 $F_BOLD $CORAL))
-$obsLbl = New-Label '' 40 172 460 24 $F_BOLD $TEXT; $p.Controls.Add($obsLbl)
+$p.Controls.Add((New-Label $intro 40 70 680 60 $F_BODY $cMUTED))
+$p.Controls.Add((New-Label 'ON THIS PC' 40 146 300 20 $F_BOLD $cCORAL))
+$obsLbl = New-Label '' 40 172 460 24 $F_BOLD $cTEXT; $p.Controls.Add($obsLbl)
 $btnObs = New-Button 'Install OBS (free)' 520 166 200 $true; $p.Controls.Add($btnObs)
-$slLbl = New-Label '' 40 202 680 22 $F_SMALL $MUTED; $p.Controls.Add($slLbl)
-$p.Controls.Add((New-Label 'Next you pick your webcam and microphone. If OBS is open, the setup asks you to close it before it changes anything.' 40 250 680 44 $F_BODY $MUTED))
+$slLbl = New-Label '' 40 202 680 22 $F_SMALL $cMUTED; $p.Controls.Add($slLbl)
+$p.Controls.Add((New-Label 'Next you pick your webcam and microphone. If OBS is open, the setup asks you to close it before it changes anything.' 40 250 680 44 $F_BODY $cMUTED))
 function Update-ObsStatus {
-  if ($script:obsExe) { $obsLbl.Text = [char]0x2713 + '  OBS Studio is installed'; $obsLbl.ForeColor = $GREEN; $btnObs.Visible = $false }
-  else { $obsLbl.Text = [char]0x2715 + '  OBS Studio is not installed'; $obsLbl.ForeColor = $AMBER; $btnObs.Visible = $true }
+  if ($script:obsExe) { $obsLbl.Text = "$([char]0x2713)  OBS Studio is installed"; $obsLbl.ForeColor = $cGREEN; $btnObs.Visible = $false }
+  else { $obsLbl.Text = "$([char]0x2715)  OBS Studio is not installed"; $obsLbl.ForeColor = $cAMBER; $btnObs.Visible = $true }
   if ($slobs) { $slLbl.Text = 'Streamlabs Desktop found too - you can import the AD FINEM scenes there (see the README).' }
 }
 Update-ObsStatus
@@ -188,7 +196,7 @@ $btnObs.Add_Click({
 # ------------------------------------------------------------------ page 2: camera + mic
 $p = $pages[1]
 $p.Controls.Add((New-Label 'Webcam and microphone' 40 20 680 34 (HeadFont 16)))
-$p.Controls.Add((New-Label 'WEBCAM' 40 66 300 20 $F_BOLD $CORAL))
+$p.Controls.Add((New-Label 'WEBCAM' 40 66 300 20 $F_BOLD $cCORAL))
 $cbCam = New-Object System.Windows.Forms.ComboBox; $cbCam.DropDownStyle = 'DropDown'
 $cbCam.Location = New-Object System.Drawing.Point(40, 90); $cbCam.Size = New-Object System.Drawing.Size(320, 28); Style-Combo $cbCam
 $KEEP = '(keep what I have)'; $LATER = '(no webcam / set up later)'
@@ -198,9 +206,9 @@ foreach ($c in $cams) { [void]$cbCam.Items.Add($c) }
 [void]$cbCam.Items.Add($LATER)
 $cbCam.SelectedIndex = 0
 $p.Controls.Add($cbCam)
-$p.Controls.Add((New-Label 'Not in the list? Type its name as OBS shows it.' 40 120 320 20 $F_SMALL $MUTED))
+$p.Controls.Add((New-Label 'Not in the list? Type its name as OBS shows it.' 40 120 320 20 $F_SMALL $cMUTED))
 
-$p.Controls.Add((New-Label 'MICROPHONE' 400 66 300 20 $F_BOLD $CORAL))
+$p.Controls.Add((New-Label 'MICROPHONE' 400 66 300 20 $F_BOLD $cCORAL))
 $cbMic = New-Object System.Windows.Forms.ComboBox; $cbMic.DropDownStyle = 'DropDownList'
 $cbMic.Location = New-Object System.Drawing.Point(400, 90); $cbMic.Size = New-Object System.Drawing.Size(320, 28); Style-Combo $cbMic
 $mics = Get-Mics
@@ -210,41 +218,41 @@ if ($current.Mic) { [void]$cbMic.Items.Add($KEEP); $micIds += '' }
 foreach ($m in $mics) { [void]$cbMic.Items.Add($m.Name); $micIds += $m.Id }
 $cbMic.SelectedIndex = 0
 $p.Controls.Add($cbMic)
-$p.Controls.Add((New-Label 'Desktop audio uses your default speakers/headset.' 400 120 320 20 $F_SMALL $MUTED))
+$p.Controls.Add((New-Label 'Desktop audio uses your default speakers/headset.' 400 120 320 20 $F_SMALL $cMUTED))
 
-$p.Controls.Add((New-Label 'MAKE MY MIC SOUND GOOD' 40 160 400 20 $F_BOLD $CORAL))
+$p.Controls.Add((New-Label 'MAKE MY MIC SOUND GOOD' 40 160 400 20 $F_BOLD $cCORAL))
 $fresh = -not $current.Mic -or -not $current.Filters
 $has = { param($k) $fresh -or ($current.Filters -contains $k) }
 $ckNs    = New-Check 'Noise suppression' 'Removes fans, keyboard clicks and background hum' 40 188 (& $has 'ns')
 $ckGate  = New-Check 'Noise gate' 'Silence between your words - no breathing or room noise' 400 188 (& $has 'gate')
 $ckComp  = New-Check 'Compressor' 'Evens out quiet talking and loud callouts' 40 246 (& $has 'comp')
 $ckLimit = New-Check 'Limiter' 'Stops shouting from clipping and hurting ears' 400 246 (& $has 'limit')
-$p.Controls.Add((New-Label 'Fine-tune later in OBS: in the Audio Mixer click the three dots next to Mic/Aux > Filters.' 40 312 680 40 $F_SMALL $MUTED))
+$p.Controls.Add((New-Label 'Fine-tune later in OBS: in the Audio Mixer click the three dots next to Mic/Aux > Filters.' 40 312 680 40 $F_SMALL $cMUTED))
 $origFilters = (@('ns', 'gate', 'comp', 'limit') | Where-Object { & $has $_ }) -join ','
 
 # ------------------------------------------------------------------ page 3: installing
 $p = $pages[2]
 $stTitle = New-Label 'Setting up...' 40 20 680 34 (HeadFont 16); $p.Controls.Add($stTitle)
-$stLbl = New-Label 'Starting' 40 62 520 22 $F_BOLD $AMBER; $p.Controls.Add($stLbl)
+$stLbl = New-Label 'Starting' 40 62 520 22 $F_BOLD $cAMBER; $p.Controls.Add($stLbl)
 $btnCloseObs = New-Button 'Close OBS for me' 540 56 180 $true; $btnCloseObs.Visible = $false; $p.Controls.Add($btnCloseObs)
 $bar = New-Object System.Windows.Forms.ProgressBar
 $bar.Location = New-Object System.Drawing.Point(40, 96); $bar.Size = New-Object System.Drawing.Size(680, 10); $bar.Maximum = 6; $bar.Style = 'Continuous'
 $p.Controls.Add($bar)
 $log = New-Object System.Windows.Forms.ListBox
 $log.Location = New-Object System.Drawing.Point(40, 122); $log.Size = New-Object System.Drawing.Size(680, 246)
-$log.BackColor = $PANEL; $log.ForeColor = $MUTED; $log.BorderStyle = 'None'; $log.Font = $F_SMALL
+$log.BackColor = $cPANEL; $log.ForeColor = $cMUTED; $log.BorderStyle = 'None'; $log.Font = $F_SMALL
 $p.Controls.Add($log)
 $btnCloseObs.Add_Click({ Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue | ForEach-Object { [void]$_.CloseMainWindow() } })
 
 # ------------------------------------------------------------------ page 4: done
 $p = $pages[3]
 $doneTitle = New-Label 'All set - to the end' 40 26 680 36 (HeadFont 18); $p.Controls.Add($doneTitle)
-$doneText = New-Label '' 40 72 680 110 $F_BODY $MUTED; $p.Controls.Add($doneText)
+$doneText = New-Label '' 40 72 680 110 $F_BODY $cMUTED; $p.Controls.Add($doneText)
 $btnOpenObs = New-Button 'Open OBS' 40 200 200 $true
 $btnEditor = New-Button 'Customize overlays' 254 200 200
 $btnDeck = New-Button 'Add Stream Deck page' 468 200 200
 $p.Controls.AddRange(@($btnOpenObs, $btnEditor, $btnDeck))
-$p.Controls.Add((New-Label 'Updates are offered automatically when OBS starts.' 40 262 680 22 $F_SMALL $MUTED))
+$p.Controls.Add((New-Label 'Updates are offered automatically when OBS starts.' 40 262 680 22 $F_SMALL $cMUTED))
 $btnOpenObs.Add_Click({ if ($script:obsExe) { Start-Process -FilePath $script:obsExe -WorkingDirectory (Split-Path $script:obsExe) } })
 $btnEditor.Add_Click({ Start-Process powershell -WindowStyle Minimized -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Minimized', '-File', "`"$(Join-Path $dest '_system\editor.ps1')`"") })
 $btnDeck.Add_Click({ $f = Join-Path $dest 'AD FINEM.streamDeckProfile'; if (Test-Path $f) { Start-Process $f } })
@@ -330,7 +338,7 @@ $timer.Add_Tick({
       Show-Page 3
     } else {
       $script:exitCode = 3
-      $stTitle.Text = 'Something went wrong'; $stTitle.ForeColor = $CORAL
+      $stTitle.Text = 'Something went wrong'; $stTitle.ForeColor = $cCORAL
       $err = (Get-Content $errFile -ErrorAction SilentlyContinue | Where-Object { $_ } | Select-Object -First 6) -join ' '
       $stLbl.Text = 'Nothing is lost - run the setup again, or INSTALL.bat in the kit folder.'
       if ($err) { [void]$log.Items.Add(''); [void]$log.Items.Add('ERROR: ' + $err) }

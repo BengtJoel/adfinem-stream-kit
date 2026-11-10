@@ -41,8 +41,7 @@ Section "Install"
   File /r "kit\*.*"
   HideWindow
   ; the graphical setup: 0 = installed, 2 = cancelled, 3 = failed (already shown), other = could not start
-  nsExec::Exec '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "$PLUGINSDIR\kit\_system\setup\setup-gui.ps1"'
-  Pop $0
+  ExecWait '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "$PLUGINSDIR\kit\_system\setup\setup-gui.ps1"' $0
   StrCmp $0 "0" registered
   StrCmp $0 "2" done
   StrCmp $0 "3" done
