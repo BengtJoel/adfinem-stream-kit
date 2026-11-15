@@ -1,13 +1,41 @@
-"""Builds the AD FINEM Stream Deck page (15-key Stream Deck / MK.2 layout).
-   python build_sd.py page <icons_dir> <out_page_dir> <editor_path>  -> writes manifest.json + Images/
-   python build_sd.py profile <icons_dir> <out.streamDeckProfile> <editor_path>
+"""Builds the AD FINEM Stream Deck profiles (15-key Stream Deck / MK.2 layout).
+
+   python build_sd.py templates            -> writes templates/<edition>-<mode>/ for every combination
+
+   edition: retail | forever | both   (both = two pages: Retail collection and "AD FINEM Forever")
+   mode:    obs  - Elgato's "OBS Studio" plugin: keys show what OBS is doing (two icon states)
+            keys - plain key commands (no plugin needed, one icon state)
+
+   install.ps1 / make-profile.ps1 zips one template into "AD FINEM.streamDeckProfile",
+   replacing __EDITOR__ with the path to "Customize overlays.bat".
+   Icons: icons/ (Retail) and ../../editions/forever/streamdeck_icons/ - the second states
+   (*_off, *_active, *_on) are made by tools/make_states.py.
 """
-import json, os, shutil, sys, uuid, zipfile
+import json, os, shutil, sys, uuid
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ICONS = {"retail": os.path.join(HERE, "icons"),
+         "forever": os.path.join(HERE, "..", "..", "editions", "forever", "streamdeck_icons")}
+OUT = os.path.join(HERE, "templates")
+PROFILE_UUID = "A7D0F1E2-5C3B-4E6A-9F80-AD0F1E2E5C3B"       # same as before: importing again updates the profile
+NS = uuid.UUID("ad0f1e2e-5c3b-4e6a-9f80-a7d0f1e25c3b")
 
 QT_F = {n: 16777264 + n - 1 for n in range(1, 36)}        # Qt::Key_F1 = 0x01000030
 VK_F = {n: 111 + n for n in range(1, 25)}                 # VK_F1 = 0x70
 EMPTY = {"KeyCmd": False, "KeyCtrl": False, "KeyModifiers": 0, "KeyOption": False, "KeyShift": False,
          "NativeCode": 0, "QTKeyCode": 33554431, "VKeyCode": -1}
+
+OBS = {"Name": "OBS Studio", "UUID": "com.elgato.obsstudio", "Version": "3.0.3.31"}
+# Elgato's OBS actions: state 0 = "on" (scene on screen, audio live, source shown, recording/streaming),
+#                       state 1 = "off"
+SCENES = [("0,0", "AF - Starting Soon", "scene_starting"), ("1,0", "AF - In-Game", "scene_ingame"),
+          ("2,0", "AF - BRB", "scene_brb"), ("3,0", "AF - Ending", "scene_ending")]
+# items in "AF - In-Game" (ids from obs_template.json); the kit's OBS script copies their
+# visibility to the same source in every other AD FINEM scene
+ITEMS = [("2,1", "Show / hide webcam", "Webcam (pick your camera)", 2, "cam"),
+         ("3,1", "Show / hide sponsors", "AF Sponsors", 5, "sponsors"),
+         ("4,1", "Show / hide alerts", "AF Alerts", 4, "alerts")]
+
 
 def hotkey(fn, ctrl=True, alt=True, shift=True):
     mods = (1 if shift else 0) | (2 if ctrl else 0) | (4 if alt else 0)
@@ -15,69 +43,107 @@ def hotkey(fn, ctrl=True, alt=True, shift=True):
          "NativeCode": VK_F[fn], "QTKeyCode": QT_F[fn], "VKeyCode": VK_F[fn]}
     return {"Coalesce": True, "Hotkeys": [k, dict(EMPTY), dict(EMPTY), dict(EMPTY)]}
 
+
 def state(img):
     return {"FontFamily": "", "FontSize": 12, "FontStyle": "", "FontUnderline": False, "Image": "Images/" + img,
             "OutlineThickness": 2, "ShowTitle": False, "Title": "", "TitleAlignment": "bottom", "TitleColor": "#FFFFFF"}
 
-def action(name, uid, plugin, settings, img):
-    return {"ActionID": str(uuid.uuid4()), "LinkedTitle": False, "Name": name,
-            "Plugin": {"Name": plugin, "UUID": uid if not uid.startswith("com.elgato.streamdeck.page") else "com.elgato.streamdeck.page", "Version": "1.0"},
-            "Settings": settings, "State": 0, "States": [state(img)], "UUID": uid}
+
+def action(name, uid, plugin, settings, imgs, start=0):
+    imgs = [imgs] if isinstance(imgs, str) else imgs
+    if isinstance(plugin, str):
+        plugin = {"Name": plugin, "UUID": "com.elgato.streamdeck.page" if uid.startswith("com.elgato.streamdeck.page") else uid, "Version": "1.0"}
+    return {"ActionID": str(uuid.uuid4()), "LinkedTitle": False, "Name": name, "Plugin": plugin,
+            "Settings": settings, "State": start, "States": [state(i) for i in imgs], "UUID": uid}
+
 
 HK = "com.elgato.streamdeck.system.hotkey"
 def hk(name, img, fn, **m): return action(name, HK, "Activate a Key Command", hotkey(fn, **m), img)
 
-def layout(editor_path):
-    return {  # "column,row" on a 5x3 Stream Deck
-        "0,0": hk("Scene: Starting Soon", "scene_starting.png", 13),
-        "1,0": hk("Scene: In-Game", "scene_ingame.png", 14),
-        "2,0": hk("Scene: BRB", "scene_brb.png", 15),
-        "3,0": hk("Scene: Ending", "scene_ending.png", 16),
-        "4,0": hk("Scene: Outro", "scene_outro.png", 17),
-        "0,1": hk("Mute / unmute mic", "mic.png", 18),
-        "1,1": hk("Mute / unmute desktop audio", "desktop.png", 19),
-        "2,1": hk("Show / hide webcam", "cam.png", 20),
-        "3,1": hk("Show / hide sponsors", "sponsors.png", 21),
-        "4,1": hk("Show / hide alerts", "alerts.png", 22),
-        "0,2": action("Previous page", "com.elgato.streamdeck.page.previous", "Pages", {}, "back.png"),
-        "1,2": action("Customize overlays", "com.elgato.streamdeck.system.open", "Open", {"openInBrowser": False, "path": editor_path}, "editor.png"),
-        "2,2": hk("Screenshot", "screenshot.png", 23),
-        "3,2": hk("Start / stop recording", "record.png", 24),
-        "4,2": hk("Start / stop stream", "live.png", 13, alt=False),
-    }
 
-def write_page(icons, out, editor_path):
-    os.makedirs(os.path.join(out, "Images"), exist_ok=True)
-    acts = layout(editor_path)
-    for a in acts.values():
-        img = a["States"][0]["Image"].split("/")[1]
-        shutil.copy(os.path.join(icons, img), os.path.join(out, "Images", img))
-    m = {"Controllers": [{"Actions": acts, "Type": "Keypad"}], "Icon": "", "Name": "AD FINEM"}
-    with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
-        json.dump(m, f, ensure_ascii=False)
-    return m
+def layout(mode, collection, nav):
+    """nav: None (single page: 'back' key) or 'next' / 'previous' (both-mode: switch look)"""
+    a = {}
+    if mode == "obs":
+        for key, scene, img in SCENES:
+            a[key] = action("Scene: " + scene[5:], "com.elgato.obsstudio.scene", OBS,
+                            {"scene": scene, "target": "program"}, [img + "_active.png", img + ".png"], 1)
+        for key, name, src, img in (("0,1", "Mute / unmute mic", "Mic/Aux", "mic"),
+                                    ("1,1", "Mute / unmute desktop audio", "Desktop Audio", "desktop")):
+            a[key] = action(name, "com.elgato.obsstudio.mixeraudio", OBS,
+                            {"type": "mute", "mode": "toggle", "style": "static", "source": src, "step": 1.0, "volume": 0.5},
+                            [img + ".png", img + "_off.png"])
+        for key, name, src, iid, img in ITEMS:
+            a[key] = action(name, "com.elgato.obsstudio.source", OBS,
+                            {"collection": collection, "scene": "AF - In-Game", "sceneitemscene": "AF - In-Game",
+                             "sceneitemid": iid, "sceneitemname": src},
+                            [img + ".png", img + "_off.png"])
+        a["3,2"] = action("Start / stop recording", "com.elgato.obsstudio.record", OBS, {"longpress": False},
+                          ["record_on.png", "record.png"], 1)
+        a["4,2"] = action("Start / stop stream", "com.elgato.obsstudio.stream", OBS, {"longpress": False},
+                          ["live_on.png", "live.png"], 1)
+    else:
+        for (key, _, img), fn in zip(SCENES, (13, 14, 15, 16)):
+            a[key] = hk("Scene: " + _[5:], img + ".png", fn)
+        a["0,1"] = hk("Mute / unmute mic", "mic.png", 18)
+        a["1,1"] = hk("Mute / unmute desktop audio", "desktop.png", 19)
+        a["2,1"] = hk("Show / hide webcam", "cam.png", 20)
+        a["3,1"] = hk("Show / hide sponsors", "sponsors.png", 21)
+        a["4,1"] = hk("Show / hide alerts", "alerts.png", 22)
+        a["3,2"] = hk("Start / stop recording", "record.png", 24)
+        a["4,2"] = hk("Start / stop stream", "live.png", 13, alt=False)
+    a["4,0"] = hk("Scene: Ending + outro", "scene_outro.png", 17)        # plays the outro, then Ending
+    a["2,2"] = hk("Screenshot", "screenshot.png", 23)
+    a["1,2"] = action("Customize overlays", "com.elgato.streamdeck.system.open", "Open",
+                      {"openInBrowser": False, "path": "__EDITOR__"}, "editor.png")
+    if nav is None:
+        a["0,2"] = action("Previous page", "com.elgato.streamdeck.page.previous", "Pages", {}, "back.png")
+    else:
+        a["0,2"] = action("Switch look (Retail / WoW Forever)", "com.elgato.streamdeck.page." + nav, "Pages", {}, "page_other.png")
+    return a
+
+
+def write_page(folder, icons, actions, other_icons=None):
+    img_dir = os.path.join(folder, "Images"); os.makedirs(img_dir, exist_ok=True)
+    for act in actions.values():
+        for st in act["States"]:
+            n = st["Image"].split("/")[1]
+            src = os.path.join(other_icons, "page.png") if n == "page_other.png" else os.path.join(icons, n)
+            shutil.copy(src, os.path.join(img_dir, n))
+    m = {"Controllers": [{"Actions": actions, "Type": "Keypad"}], "Icon": "", "Name": "AD FINEM"}
+    with open(os.path.join(folder, "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(m, f, ensure_ascii=False, indent=1)
+
 
 ALPHA = "0123456789ABCDEFGHIJKLMNOPQRSTVW"   # Stream Deck's folder names: base32 of the page UUID (no U), then "Z"
 def page_folder(page_uuid):
     n = int.from_bytes(uuid.UUID(page_uuid).bytes, "big") << 2      # 128 bits -> 26 x 5 bits
-    s = "".join(ALPHA[(n >> (5 * (25 - i))) & 31] for i in range(26))
-    return s + "Z"
+    return "".join(ALPHA[(n >> (5 * (25 - i))) & 31] for i in range(26)) + "Z"
+
+
+def build(edition, mode):
+    out = os.path.join(OUT, f"{edition}-{mode}")
+    shutil.rmtree(out, ignore_errors=True)
+    root = os.path.join(out, PROFILE_UUID + ".sdProfile")
+    if edition == "both":
+        pages = [("retail", "AD FINEM", "next"), ("forever", "AD FINEM Forever", "previous")]
+    else:
+        pages = [(edition, "AD FINEM", None)]
+    ids = []
+    for look, coll, nav in pages:
+        pid = str(uuid.uuid5(NS, f"{edition}-{mode}-{look}"))
+        ids.append(pid)
+        other = ICONS["forever" if look == "retail" else "retail"]
+        write_page(os.path.join(root, "Profiles", page_folder(pid)), ICONS[look], layout(mode, coll, nav), other)
+    with open(os.path.join(root, "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump({"Device": {"Model": "20GAA9902", "UUID": ""}, "Name": "AD FINEM",
+                   "Pages": {"Current": ids[0], "Default": ids[0], "Pages": ids}, "Version": "2.0"}, f)
+    return out
+
 
 if __name__ == "__main__":
-    mode, icons, out, editor = sys.argv[1:5]
-    if mode == "page":
-        write_page(icons, out, editor); print("page written", out)
-    else:
-        import tempfile
-        prof, page = str(uuid.uuid4()).upper(), str(uuid.uuid4())
-        tmp = tempfile.mkdtemp(); root = os.path.join(tmp, prof + ".sdProfile")
-        write_page(icons, os.path.join(root, "Profiles", page_folder(page)), editor)
-        os.makedirs(os.path.join(root, "Images"), exist_ok=True)
-        json.dump({"Device": {"Model": "20GBD9901", "UUID": ""}, "Name": "AD FINEM",
-                   "Pages": {"Current": page, "Default": page, "Pages": [page]}, "Version": "2.0"},
-                  open(os.path.join(root, "manifest.json"), "w"))
-        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-            for r, d, fs in os.walk(tmp):
-                for f in fs:
-                    p = os.path.join(r, f); z.write(p, os.path.relpath(p, tmp))
-        print("profile written", out)
+    if sys.argv[1:2] != ["templates"]:
+        sys.exit(__doc__)
+    for ed in ("retail", "forever", "both"):
+        for mode in ("obs", "keys"):
+            print("written", build(ed, mode))

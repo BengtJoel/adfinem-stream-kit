@@ -86,10 +86,19 @@ STREAM DECK
            (Ending and Outro both play the outro, then show the thanks screen)
     Row 2  Mic | Desktop audio | Webcam | Sponsors | Alerts   (on/off)
     Row 3  Back | Customize overlays | Screenshot | Record | GO LIVE
-  The buttons press OBS hotkeys (Ctrl+Alt+Shift+F13...F24, GO LIVE =
-  Ctrl+Shift+F13) that the installer sets up in OBS - nothing else to
-  install. Change them in OBS > Settings > Hotkeys (search "AD FINEM").
-  Keyboard only? The same hotkeys work without a Stream Deck.
+  KEYS THAT SHOW WHAT OBS IS DOING (recommended): install Elgato's free
+  "OBS Studio" plugin in the Stream Deck app (Marketplace), then run the
+  setup again (or click "Get the OBS plugin" on its last page). Then:
+    the scene on screen gets a frame and an ACTIVE tag, a muted mic or
+    desktop audio turns grey with a red line, hidden webcam / sponsors /
+    alerts say HIDDEN, Record turns red while recording, GO LIVE says LIVE.
+  With "both" looks installed the page has a second page for the
+  "AD FINEM Forever" collection: the bottom-left key switches between them.
+  Without the plugin the buttons press OBS hotkeys (Ctrl+Alt+Shift+F13...F24,
+  GO LIVE = Ctrl+Shift+F13) that the installer sets up in OBS. They work the
+  same, the keys just don't change. Change them in OBS > Settings > Hotkeys
+  (search "AD FINEM"). Keyboard only? The same hotkeys work without a
+  Stream Deck.
 
 
 TWITCH PROFILE (twitch_uploads folder)

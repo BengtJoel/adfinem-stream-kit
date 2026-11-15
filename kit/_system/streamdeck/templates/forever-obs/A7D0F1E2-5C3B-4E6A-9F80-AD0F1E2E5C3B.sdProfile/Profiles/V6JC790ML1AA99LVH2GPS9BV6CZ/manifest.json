@@ -1,0 +1,687 @@
+{
+ "Controllers": [
+  {
+   "Actions": {
+    "0,0": {
+     "ActionID": "5e6000ed-fd57-4a6f-81e9-3dcb08af4e9b",
+     "LinkedTitle": false,
+     "Name": "Scene: Starting Soon",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "scene": "AF - Starting Soon",
+      "target": "program"
+     },
+     "State": 1,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_starting_active.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_starting.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.scene"
+    },
+    "1,0": {
+     "ActionID": "cffdb717-8d4b-4248-a370-6cdc8adbf226",
+     "LinkedTitle": false,
+     "Name": "Scene: In-Game",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "scene": "AF - In-Game",
+      "target": "program"
+     },
+     "State": 1,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_ingame_active.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_ingame.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.scene"
+    },
+    "2,0": {
+     "ActionID": "1d84880f-60c4-4526-8979-e903c44956cc",
+     "LinkedTitle": false,
+     "Name": "Scene: BRB",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "scene": "AF - BRB",
+      "target": "program"
+     },
+     "State": 1,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_brb_active.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_brb.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.scene"
+    },
+    "3,0": {
+     "ActionID": "347a12c1-cc7c-46a3-95ee-80b7f4e6e9c1",
+     "LinkedTitle": false,
+     "Name": "Scene: Ending",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "scene": "AF - Ending",
+      "target": "program"
+     },
+     "State": 1,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_ending_active.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_ending.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.scene"
+    },
+    "0,1": {
+     "ActionID": "57e62a76-9371-4b52-b4ba-c19e8812caf2",
+     "LinkedTitle": false,
+     "Name": "Mute / unmute mic",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "type": "mute",
+      "mode": "toggle",
+      "style": "static",
+      "source": "Mic/Aux",
+      "step": 1.0,
+      "volume": 0.5
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/mic.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/mic_off.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.mixeraudio"
+    },
+    "1,1": {
+     "ActionID": "036e3237-0a15-4558-97c3-194738fc623d",
+     "LinkedTitle": false,
+     "Name": "Mute / unmute desktop audio",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "type": "mute",
+      "mode": "toggle",
+      "style": "static",
+      "source": "Desktop Audio",
+      "step": 1.0,
+      "volume": 0.5
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/desktop.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/desktop_off.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.mixeraudio"
+    },
+    "2,1": {
+     "ActionID": "f2bd5d15-2f47-484a-be60-6b00268ef2a8",
+     "LinkedTitle": false,
+     "Name": "Show / hide webcam",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "collection": "AD FINEM",
+      "scene": "AF - In-Game",
+      "sceneitemscene": "AF - In-Game",
+      "sceneitemid": 2,
+      "sceneitemname": "Webcam (pick your camera)"
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/cam.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/cam_off.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.source"
+    },
+    "3,1": {
+     "ActionID": "6dc6536e-298e-4d0b-900f-e980ff1263e0",
+     "LinkedTitle": false,
+     "Name": "Show / hide sponsors",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "collection": "AD FINEM",
+      "scene": "AF - In-Game",
+      "sceneitemscene": "AF - In-Game",
+      "sceneitemid": 5,
+      "sceneitemname": "AF Sponsors"
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/sponsors.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/sponsors_off.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.source"
+    },
+    "4,1": {
+     "ActionID": "00a68772-aac0-4a98-965f-af60b3a3fd0b",
+     "LinkedTitle": false,
+     "Name": "Show / hide alerts",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "collection": "AD FINEM",
+      "scene": "AF - In-Game",
+      "sceneitemscene": "AF - In-Game",
+      "sceneitemid": 4,
+      "sceneitemname": "AF Alerts"
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/alerts.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/alerts_off.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.source"
+    },
+    "3,2": {
+     "ActionID": "d9258c8f-60fc-4872-a579-ea06dfa93bb7",
+     "LinkedTitle": false,
+     "Name": "Start / stop recording",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "longpress": false
+     },
+     "State": 1,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/record_on.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/record.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.record"
+    },
+    "4,2": {
+     "ActionID": "bc0ad2c4-a548-41fa-8609-dee23f965a6e",
+     "LinkedTitle": false,
+     "Name": "Start / stop stream",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "longpress": false
+     },
+     "State": 1,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/live_on.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/live.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.stream"
+    },
+    "4,0": {
+     "ActionID": "10149fcc-4cbd-4130-b8e8-a95cfc15a484",
+     "LinkedTitle": false,
+     "Name": "Scene: Ending + outro",
+     "Plugin": {
+      "Name": "Activate a Key Command",
+      "UUID": "com.elgato.streamdeck.system.hotkey",
+      "Version": "1.0"
+     },
+     "Settings": {
+      "Coalesce": true,
+      "Hotkeys": [
+       {
+        "KeyCmd": false,
+        "KeyCtrl": true,
+        "KeyModifiers": 7,
+        "KeyOption": true,
+        "KeyShift": true,
+        "NativeCode": 128,
+        "QTKeyCode": 16777280,
+        "VKeyCode": 128
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       }
+      ]
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/scene_outro.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.streamdeck.system.hotkey"
+    },
+    "2,2": {
+     "ActionID": "f77509d8-d060-4fdd-9d59-ed5aaa2ea55e",
+     "LinkedTitle": false,
+     "Name": "Screenshot",
+     "Plugin": {
+      "Name": "Activate a Key Command",
+      "UUID": "com.elgato.streamdeck.system.hotkey",
+      "Version": "1.0"
+     },
+     "Settings": {
+      "Coalesce": true,
+      "Hotkeys": [
+       {
+        "KeyCmd": false,
+        "KeyCtrl": true,
+        "KeyModifiers": 7,
+        "KeyOption": true,
+        "KeyShift": true,
+        "NativeCode": 134,
+        "QTKeyCode": 16777286,
+        "VKeyCode": 134
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       }
+      ]
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/screenshot.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.streamdeck.system.hotkey"
+    },
+    "1,2": {
+     "ActionID": "9c5b3374-4b54-4ce3-b9b0-598429279516",
+     "LinkedTitle": false,
+     "Name": "Customize overlays",
+     "Plugin": {
+      "Name": "Open",
+      "UUID": "com.elgato.streamdeck.system.open",
+      "Version": "1.0"
+     },
+     "Settings": {
+      "openInBrowser": false,
+      "path": "__EDITOR__"
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/editor.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.streamdeck.system.open"
+    },
+    "0,2": {
+     "ActionID": "629c1336-4046-4e1b-90c5-bdec408e1153",
+     "LinkedTitle": false,
+     "Name": "Previous page",
+     "Plugin": {
+      "Name": "Pages",
+      "UUID": "com.elgato.streamdeck.page",
+      "Version": "1.0"
+     },
+     "Settings": {},
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/back.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.streamdeck.page.previous"
+    }
+   },
+   "Type": "Keypad"
+  }
+ ],
+ "Icon": "",
+ "Name": "AD FINEM"
+}

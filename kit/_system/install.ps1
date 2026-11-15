@@ -382,26 +382,16 @@ try {
 # ---------------------------------------------------------------- 6. Stream Deck
 Step 6 'Making the Stream Deck page'
 try {
-  $sdSrc = Join-Path $dest '_system\streamdeck\profile'
-  if (Test-Path $sdSrc) {
-    $tmp = Join-Path $env:TEMP ('adfinem_sd_' + [guid]::NewGuid().ToString('N'))
-    Copy-Item $sdSrc $tmp -Recurse
-    $fIcons = Join-Path $dest 'editions\forever\streamdeck_icons'
-    if ($Edition -eq 'forever' -and (Test-Path $fIcons)) {
-      Get-ChildItem $tmp -Recurse -Filter '*.png' | Where-Object { $_.Directory.Name -eq 'Images' } | ForEach-Object {
-        $fi = Join-Path $fIcons $_.Name; if (Test-Path $fi) { Copy-Item $fi $_.FullName -Force } }
-    }
-    $editorPath = (Join-Path $dest 'Customize overlays.bat').Replace('\', '\\')
-    Get-ChildItem $tmp -Recurse -Filter 'manifest.json' | ForEach-Object {
-      $t = [IO.File]::ReadAllText($_.FullName).Replace('__EDITOR__', $editorPath)
-      [IO.File]::WriteAllText($_.FullName, $t, (New-Object Text.UTF8Encoding $false))
-    }
-    $sdFile = Join-Path $dest 'AD FINEM.streamDeckProfile'
-    if (Test-Path $sdFile) { Remove-Item $sdFile -Force }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [IO.Compression.ZipFile]::CreateFromDirectory($tmp, $sdFile)
-    Remove-Item $tmp -Recurse -Force
+  $sdMode = & (Join-Path $dest '_system\streamdeck\make-profile.ps1') -Dest $dest -Edition $Edition
+  if ($sdMode -eq 'obs') {
     Say '    Have a Stream Deck? Double-click "AD FINEM.streamDeckProfile" in the kit folder.' 'Green'
+    Say '    The keys light up with OBS: mic muted, scene on screen, recording, live.' 'Green'
+  } elseif ($sdMode -eq 'keys') {
+    Say '    Have a Stream Deck? Double-click "AD FINEM.streamDeckProfile" in the kit folder.' 'Green'
+    if (Test-Path (Join-Path $env:APPDATA 'Elgato\StreamDeck')) {
+      Say '    Tip: install the free "OBS Studio" plugin in the Stream Deck app (Marketplace) and run' 'Yellow'
+      Say '    setup again - then the keys show when the mic is muted, which scene is on, and when you are live.' 'Yellow'
+    }
   }
 } catch { Say '    Could not make the Stream Deck page (not a problem).' 'Yellow' }
 

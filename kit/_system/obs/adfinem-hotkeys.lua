@@ -7,6 +7,8 @@
     F13-F16  scenes (set on the scenes themselves; F17 = Ending too, it plays the outro)
     F18 mic   F19 desktop audio   F20 webcam   F21 sponsors   F22 alerts
     F23 screenshot   F24 recording        Ctrl + Shift + F13  start/stop stream
+  Webcam, sponsors and alerts are kept the same in every scene: show or hide one (here, in OBS
+  or with the Stream Deck's OBS keys) and the others follow.
 ]]
 obs = obslua
 
@@ -57,6 +59,63 @@ local function find_webcam()
     end
   end)
   return name
+end
+
+-- Keep webcam, sponsors and alerts the same in every scene. The Stream Deck's OBS keys switch the
+-- one in "AF - In-Game" (so they can show its state); this copies the change to the other scenes.
+local MIRROR = { ["AF Sponsors"] = true, ["AF Alerts"] = true }
+local webcam_name, handlers, pending, armed, applying = nil, {}, {}, false, false
+
+local function mirror_tick()
+  obs.timer_remove(mirror_tick); armed = false
+  local todo = pending; pending = {}
+  applying = true
+  for name, vis in pairs(todo) do
+    each_scene(function(scene)
+      local item = obs.obs_scene_find_source(scene, name)
+      if item ~= nil and obs.obs_sceneitem_visible(item) ~= vis then obs.obs_sceneitem_set_visible(item, vis) end
+    end)
+  end
+  applying = false
+end
+
+local function on_item_visible(cd)
+  if applying then return end
+  local item = obs.calldata_sceneitem(cd, "item")
+  if item == nil then return end
+  local name = obs.obs_source_get_name(obs.obs_sceneitem_get_source(item))
+  if MIRROR[name] or (webcam_name ~= nil and name == webcam_name) then
+    pending[name] = obs.calldata_bool(cd, "visible")
+    if not armed then armed = true; obs.timer_add(mirror_tick, 40) end      -- do it outside the signal
+  end
+end
+
+local function unhook_scenes()
+  for _, sh in ipairs(handlers) do obs.signal_handler_disconnect(sh, "item_visible", on_item_visible) end
+  handlers = {}
+end
+
+local function hook_scenes()
+  unhook_scenes()
+  local scenes = obs.obs_frontend_get_scenes()
+  if scenes then
+    for _, src in ipairs(scenes) do
+      local sh = obs.obs_source_get_signal_handler(src)
+      obs.signal_handler_connect(sh, "item_visible", on_item_visible)
+      table.insert(handlers, sh)
+    end
+    obs.source_list_release(scenes)
+  end
+  webcam_name = find_webcam()
+end
+
+local function on_frontend_event(ev)
+  if ev == obs.OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGING or ev == obs.OBS_FRONTEND_EVENT_EXIT then
+    unhook_scenes()
+  elseif ev == obs.OBS_FRONTEND_EVENT_FINISHED_LOADING or ev == obs.OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED
+      or ev == obs.OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED then
+    hook_scenes()
+  end
 end
 
 local HOTKEYS = {
@@ -115,6 +174,12 @@ function script_load(settings)
   end
   obs.obs_data_set_bool(settings, "adfinem_defaults_set", true)
   obs.timer_add(check_update, 20000)
+  obs.obs_frontend_add_event_callback(on_frontend_event)
+  hook_scenes()                       -- (no scenes yet when OBS is starting: FINISHED_LOADING hooks them)
+end
+
+function script_unload()
+  unhook_scenes()
 end
 
 function script_save(settings)

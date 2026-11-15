@@ -379,6 +379,36 @@ $btnOpenObs.Add_Click({ if ($script:obsExe) { Start-Process -FilePath $script:ob
 $btnEditor.Add_Click({ Start-Process powershell -WindowStyle Minimized -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Minimized', '-File', "`"$(Join-Path $dest '_system\editor.ps1')`"") })
 $btnDeck.Add_Click({ $f = Join-Path $dest 'AD FINEM.streamDeckProfile'; if (Test-Path $f) { Start-Process $f } })
 
+# Stream Deck: keys that show what OBS is doing need Elgato's free "OBS Studio" plugin
+$SD_PLUGIN = Join-Path $env:APPDATA 'Elgato\StreamDeck\Plugins\com.elgato.obsstudio.sdPlugin'
+$SD_MARKET = 'https://marketplace.elgato.com/product/obs-studio-35615969-830f-45c9-ba0a-1a295bba7fec'
+$deckLbl = New-Label '' 40 296 460 60 $F_SMALL $cMUTED; $deckLbl.Visible = $false; $p.Controls.Add($deckLbl)
+$btnPlugin = New-Button 'Get the OBS plugin' 520 300 200 $true; $btnPlugin.Visible = $false; $p.Controls.Add($btnPlugin)
+$deckTimer = New-Object System.Windows.Forms.Timer; $deckTimer.Interval = 2000
+function Update-Deck {
+  $hasApp = Test-Path (Join-Path $env:APPDATA 'Elgato\StreamDeck')
+  if (-not $hasApp -or -not (Test-Path (Join-Path $dest 'AD FINEM.streamDeckProfile'))) { $deckLbl.Visible = $false; $btnPlugin.Visible = $false; return }
+  $deckLbl.Visible = $true
+  if (Test-Path $SD_PLUGIN) {
+    $btnPlugin.Visible = $false
+    $deckLbl.ForeColor = $cTEXT
+    $deckLbl.Text = 'Stream Deck: the keys light up with OBS - mic muted, the scene on screen, recording and live. Click "Add Stream Deck page".'
+  } else {
+    $btnPlugin.Visible = $true
+    $deckLbl.ForeColor = $cMUTED
+    $deckLbl.Text = 'Stream Deck: install Elgato''s free OBS Studio plugin and the keys show when the mic is muted, which scene is on and when you are live. Click "Get", this window notices by itself.'
+  }
+}
+$btnPlugin.Add_Click({ try { Start-Process $SD_MARKET } catch {}; $deckTimer.Start() })
+$deckTimer.Add_Tick({
+  if (-not (Test-Path $SD_PLUGIN)) { return }
+  $deckTimer.Stop()
+  Start-Sleep -Milliseconds 800                     # let the Stream Deck app finish unpacking it
+  try { & (Join-Path $dest '_system\streamdeck\make-profile.ps1') -Dest $dest -Edition $script:edition | Out-Null } catch {}
+  Update-Deck
+  $deckLbl.Text = 'OBS plugin installed - your Stream Deck page now lights up with OBS. Click "Add Stream Deck page" (replace the old AD FINEM profile if asked).'
+})
+
 # ------------------------------------------------------------------ flow
 $script:page = 0
 function Show-Page($n) {
@@ -469,6 +499,7 @@ $timer.Add_Tick({
       $doneText.Text = $lines -join "`r`n`r`n"
       $btnOpenObs.Visible = [bool]$script:obsExe
       $btnDeck.Visible = Test-Path (Join-Path $dest 'AD FINEM.streamDeckProfile')
+      Update-Deck
       Show-Page 5
     } else {
       $script:exitCode = 3
@@ -483,6 +514,7 @@ $timer.Add_Tick({
 })
 
 $form.Add_FormClosing({ param($s, $e)
+  $deckTimer.Stop()
   if ($script:proc -and -not $script:proc.HasExited) {
     $r = [System.Windows.Forms.MessageBox]::Show('Setup is still running. Stop it?', 'AD FINEM Stream Kit', 'YesNo', 'Warning')
     if ($r -ne 'Yes') { $e.Cancel = $true } else { try { $script:proc.Kill() } catch {} }
