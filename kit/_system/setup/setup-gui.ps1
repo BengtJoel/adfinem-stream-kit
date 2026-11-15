@@ -52,13 +52,13 @@ function New-Button($text, $x, $y, $w, $primary = $false) {
   else { $b.BackColor = $cPANEL; $b.ForeColor = $cTEXT; $b.FlatAppearance.BorderColor = $cLINE }
   return $b
 }
-function New-Check($text, $sub, $x, $y, $checked) {
+function New-Check($text, $sub, $x, $y, $checked, $w = 320) {
   # a whole clickable row: tick box + title + one line of explanation
   $c = New-Object System.Windows.Forms.CheckBox
   $c.Text = $text; $c.Checked = [bool]$checked; $c.AutoSize = $true
   $c.Location = New-Object System.Drawing.Point($x, $y)
   $c.Font = $F_BOLD; $c.ForeColor = $cTEXT; $c.BackColor = $cBG; $c.FlatStyle = 'Standard'; $c.Cursor = 'Hand'
-  $l = New-Label $sub ($x + 20) ($y + 24) 320 20 $F_SMALL $cMUTED
+  $l = New-Label $sub ($x + 20) ($y + 24) $w 20 $F_SMALL $cMUTED
   $l.BackColor = $cBG; $l.Cursor = 'Hand'
   $l.Tag = $c
   $l.Add_Click({ $this.Tag.Checked = -not $this.Tag.Checked })
@@ -256,7 +256,7 @@ New-EditionCard 'both' 'BOTH' 'Two scene collections in OBS - switch with Scene 
 
 # ------------------------------------------------------------------ page 3: camera + mic
 $p = $pages[2]
-$p.Controls.Add((New-Label 'Webcam and microphone' 40 20 680 34 (HeadFont 16)))
+$p.Controls.Add((New-Label 'Webcam, microphone and music' 40 20 680 34 (HeadFont 16)))
 $p.Controls.Add((New-Label 'WEBCAM' 40 66 300 20 $F_BOLD $cCORAL))
 $cbCam = New-Object System.Windows.Forms.ComboBox; $cbCam.DropDownStyle = 'DropDown'
 $cbCam.Location = New-Object System.Drawing.Point(40, 90); $cbCam.Size = New-Object System.Drawing.Size(320, 28); Style-Combo $cbCam
@@ -281,14 +281,17 @@ $cbMic.SelectedIndex = 0
 $p.Controls.Add($cbMic)
 $p.Controls.Add((New-Label 'Desktop audio uses your default speakers/headset.' 400 120 320 20 $F_SMALL $cMUTED))
 
-$p.Controls.Add((New-Label 'MAKE MY MIC SOUND GOOD' 40 160 400 20 $F_BOLD $cCORAL))
+$p.Controls.Add((New-Label 'MAKE MY MIC SOUND GOOD' 40 160 340 20 $F_BOLD $cCORAL))
 $fresh = -not $current.Mic -or -not $current.Filters
 $has = { param($k) $fresh -or ($current.Filters -contains $k) }
 $ckNs    = New-Check 'Noise suppression' 'Removes fans, keyboard clicks and background hum' 40 188 (& $has 'ns')
 $ckGate  = New-Check 'Noise gate' 'Silence between your words - no breathing or room noise' 400 188 (& $has 'gate')
 $ckComp  = New-Check 'Compressor' 'Evens out quiet talking and loud callouts' 40 246 (& $has 'comp')
 $ckLimit = New-Check 'Limiter' 'Stops shouting from clipping and hurting ears' 400 246 (& $has 'limit')
-$p.Controls.Add((New-Label 'Fine-tune later in OBS: in the Audio Mixer click the three dots next to Mic/Aux > Filters.' 40 312 680 40 $F_SMALL $cMUTED))
+$p.Controls.Add((New-Label 'Fine-tune later in OBS: Audio Mixer > three dots next to Mic/Aux > Filters.' 400 160 330 20 $F_SMALL $cMUTED))
+# music for the stream: Spotify -> VB-CABLE -> "AF Music" in OBS; the Music key mutes it only in your headphones
+$ckMusic = New-Check 'Music for the stream (Spotify)' 'Spotify on stream - the Music key mutes it only for you. Installs the free VB-CABLE (vb-audio.com).' 40 304 $true 680
+$ckMusic.Checked = $true
 $origFilters = (@('ns', 'gate', 'comp', 'limit') | Where-Object { & $has $_ }) -join ','
 
 
@@ -466,6 +469,7 @@ function Start-Install {
   $fs = $f -join ','
   if ($fresh -or $fs -ne $origFilters) { $args2 += @('-MicFilters', $(if ($fs) { $fs } else { 'none' })) }
   $args2 += @('-Edition', $script:edition)
+  $args2 += @('-Music', $(if ($ckMusic.Checked) { 'auto' } else { 'off' }))
   if ($script:twAuth) {   # the overlays read this file; the installer never overwrites it
     try {
       $tf = Join-Path $dest '_system\twitch_auth.js'

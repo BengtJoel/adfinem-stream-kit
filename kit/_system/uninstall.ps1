@@ -12,4 +12,8 @@ while (Get-Process -Name obs64 -ErrorAction SilentlyContinue) {
   if ($Quiet) { Write-Host 'Close OBS to finish removing the kit...' -ForegroundColor Yellow; Start-Sleep -Seconds 2 }
   else { Write-Host 'Close OBS first, then run this again.' -ForegroundColor Yellow; return }
 }
-if ($Quiet -or (Read-Host 'Continue? (Y/N)') -match '^[YyJj]') { $items | Remove-Item -Recurse; Write-Host 'Removed.' -ForegroundColor Green }
+if ($Quiet -or (Read-Host 'Continue? (Y/N)') -match '^[YyJj]') {
+  $items | Remove-Item -Recurse; Write-Host 'Removed.' -ForegroundColor Green
+  # the music channel: Spotify back to your normal output (VB-CABLE itself stays - other programs may use it)
+  try { . (Join-Path $PSScriptRoot 'audio\af-audio.ps1'); if (Find-AfCable) { Reset-AfSpotify } } catch {}
+}

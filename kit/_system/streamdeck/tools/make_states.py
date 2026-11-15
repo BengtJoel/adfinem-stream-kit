@@ -3,6 +3,7 @@
    Reads the normal icons (state 0) and writes, next to them:
      mic_off / desktop_off            muted  (red slash, red "MUTED")
      cam_off / sponsors_off / alerts_off   hidden (red slash, "HIDDEN")
+     music_off                        music only on stream, not in your headphones ("STREAM ONLY")
      scene_*_active                   the scene that is on screen (accent frame + "ACTIVE" tag)
      record_on                        recording (red)
      live_on                          streaming (red, "LIVE")
@@ -61,14 +62,14 @@ def frame(im, c0, c1, width):
     return Image.composite(g, im, mask)
 
 
-def muted(src, word):
+def muted(src, word, px=17):
     im = grey(src)
     erase_label(im)
     d = ImageDraw.Draw(im)
     d.line((40, 26, 104, 86), fill=(12, 14, 20), width=15)       # cut the glyph...
     d.line((40, 26, 104, 86), fill=RED, width=7)                  # ...with a red slash
     d.rectangle((50, 0, 94, 4), fill=RED)                         # top bar turns red
-    spaced(d, word, 109, 17, RED)
+    spaced(d, word, 109, px, RED)
     return frame(im, RED_D, RED, 2)
 
 
@@ -123,6 +124,8 @@ def run(dirp, ed):
     out = {}
     for n in ("mic", "desktop"): out[n + "_off"] = muted(o(n), "MUTED")
     for n in ("cam", "sponsors", "alerts"): out[n + "_off"] = muted(o(n), "HIDDEN")
+    if os.path.exists(os.path.join(dirp, "music.png")):        # you don't hear it - the stream still does
+        out["music_off"] = muted(o("music"), "STREAM ONLY", 12)
     for n in ("scene_starting", "scene_ingame", "scene_brb", "scene_ending", "scene_outro"): out[n + "_active"] = active(o(n), ed)
     out["record_on"] = recording(o("record")); out["live_on"] = live(o("live"))
     for k, im in out.items(): im.save(os.path.join(dirp, k + ".png"))

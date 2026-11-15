@@ -3,7 +3,7 @@
   {
    "Actions": {
     "0,0": {
-     "ActionID": "e0a2635a-be10-42cd-8837-6d0e278efe1f",
+     "ActionID": "9d02ac3d-7162-4131-bd7d-c236f1998980",
      "LinkedTitle": false,
      "Name": "Scene: Starting Soon",
      "Plugin": {
@@ -45,7 +45,7 @@
      "UUID": "com.elgato.obsstudio.scene"
     },
     "1,0": {
-     "ActionID": "c93575e0-41c1-44f2-9930-8fc03479cacf",
+     "ActionID": "57de1e33-e85b-4e45-9eda-0ab170159589",
      "LinkedTitle": false,
      "Name": "Scene: In-Game",
      "Plugin": {
@@ -87,7 +87,7 @@
      "UUID": "com.elgato.obsstudio.scene"
     },
     "2,0": {
-     "ActionID": "e701a66e-75f5-4c1e-a65b-43e41fec3355",
+     "ActionID": "ff626e8a-0703-47a2-9b0c-9c616ef502e1",
      "LinkedTitle": false,
      "Name": "Scene: BRB",
      "Plugin": {
@@ -129,7 +129,7 @@
      "UUID": "com.elgato.obsstudio.scene"
     },
     "3,0": {
-     "ActionID": "a5c7875a-3ffb-4425-b6ad-9d8eed495e97",
+     "ActionID": "d6b395f6-e092-4a1f-ad7a-79de79708b9c",
      "LinkedTitle": false,
      "Name": "Scene: Ending",
      "Plugin": {
@@ -171,7 +171,7 @@
      "UUID": "com.elgato.obsstudio.scene"
     },
     "0,1": {
-     "ActionID": "2d7ed41a-8c1a-46e2-bf64-0c9ee098f47d",
+     "ActionID": "836c7684-680f-4a84-9978-492d5317f03c",
      "LinkedTitle": false,
      "Name": "Mute / unmute mic",
      "Plugin": {
@@ -217,7 +217,7 @@
      "UUID": "com.elgato.obsstudio.mixeraudio"
     },
     "1,1": {
-     "ActionID": "d22a3de6-a66c-46d4-b3bb-f4a356e9d414",
+     "ActionID": "71362dfc-ee55-42d1-85d5-f6e1b9f0fc23",
      "LinkedTitle": false,
      "Name": "Mute / unmute desktop audio",
      "Plugin": {
@@ -263,7 +263,7 @@
      "UUID": "com.elgato.obsstudio.mixeraudio"
     },
     "2,1": {
-     "ActionID": "aa2a9362-7769-46e9-92af-94a1870d8fc7",
+     "ActionID": "abd6376d-6bbb-436e-af24-67458e569ba6",
      "LinkedTitle": false,
      "Name": "Show / hide webcam",
      "Plugin": {
@@ -308,7 +308,7 @@
      "UUID": "com.elgato.obsstudio.source"
     },
     "3,1": {
-     "ActionID": "c2568146-7b9e-4598-a322-7dc3ba802cde",
+     "ActionID": "1a1df57e-e9d7-4af3-af1b-fc37938e107c",
      "LinkedTitle": false,
      "Name": "Show / hide sponsors",
      "Plugin": {
@@ -353,7 +353,7 @@
      "UUID": "com.elgato.obsstudio.source"
     },
     "4,1": {
-     "ActionID": "2a80327d-7ed8-4c65-90bb-f571cd201591",
+     "ActionID": "fff1f8f2-a628-424c-b6d4-ab0d182c4c0c",
      "LinkedTitle": false,
      "Name": "Show / hide alerts",
      "Plugin": {
@@ -397,8 +397,53 @@
      ],
      "UUID": "com.elgato.obsstudio.source"
     },
+    "2,2": {
+     "ActionID": "d9123dad-7c9b-422b-bc28-8d09034b5f49",
+     "LinkedTitle": false,
+     "Name": "Music in my headphones on / off",
+     "Plugin": {
+      "Name": "OBS Studio",
+      "UUID": "com.elgato.obsstudio",
+      "Version": "3.0.3.31"
+     },
+     "Settings": {
+      "collection": "AD FINEM",
+      "scene": "AF - In-Game",
+      "sceneitemscene": "AF - In-Game",
+      "sceneitemid": 7,
+      "sceneitemname": "AF Music - in my headphones"
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/music.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      },
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/music_off.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.obsstudio.source"
+    },
     "3,2": {
-     "ActionID": "440c8bd2-35e5-4ae5-89cf-bcd6b7fb870c",
+     "ActionID": "a1e9a444-90af-4637-9f8d-074ce55bf0e0",
      "LinkedTitle": false,
      "Name": "Start / stop recording",
      "Plugin": {
@@ -439,7 +484,7 @@
      "UUID": "com.elgato.obsstudio.record"
     },
     "4,2": {
-     "ActionID": "12194b08-ac40-4a5e-aa5f-4235e101aa3b",
+     "ActionID": "7a6bbad7-110d-4f5d-a637-8440ccee0749",
      "LinkedTitle": false,
      "Name": "Start / stop stream",
      "Plugin": {
@@ -480,7 +525,7 @@
      "UUID": "com.elgato.obsstudio.stream"
     },
     "4,0": {
-     "ActionID": "5d65682e-dcd1-4346-9c9a-6a083d4bc771",
+     "ActionID": "37b200b0-b11f-493f-bf05-2d00472811b2",
      "LinkedTitle": false,
      "Name": "Scene: Ending + outro",
      "Plugin": {
@@ -550,79 +595,8 @@
      ],
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
-    "2,2": {
-     "ActionID": "935771fb-0edc-4dc8-b148-62474aacc5fc",
-     "LinkedTitle": false,
-     "Name": "Screenshot",
-     "Plugin": {
-      "Name": "Activate a Key Command",
-      "UUID": "com.elgato.streamdeck.system.hotkey",
-      "Version": "1.0"
-     },
-     "Settings": {
-      "Coalesce": true,
-      "Hotkeys": [
-       {
-        "KeyCmd": false,
-        "KeyCtrl": true,
-        "KeyModifiers": 7,
-        "KeyOption": true,
-        "KeyShift": true,
-        "NativeCode": 134,
-        "QTKeyCode": 16777286,
-        "VKeyCode": 134
-       },
-       {
-        "KeyCmd": false,
-        "KeyCtrl": false,
-        "KeyModifiers": 0,
-        "KeyOption": false,
-        "KeyShift": false,
-        "NativeCode": 0,
-        "QTKeyCode": 33554431,
-        "VKeyCode": -1
-       },
-       {
-        "KeyCmd": false,
-        "KeyCtrl": false,
-        "KeyModifiers": 0,
-        "KeyOption": false,
-        "KeyShift": false,
-        "NativeCode": 0,
-        "QTKeyCode": 33554431,
-        "VKeyCode": -1
-       },
-       {
-        "KeyCmd": false,
-        "KeyCtrl": false,
-        "KeyModifiers": 0,
-        "KeyOption": false,
-        "KeyShift": false,
-        "NativeCode": 0,
-        "QTKeyCode": 33554431,
-        "VKeyCode": -1
-       }
-      ]
-     },
-     "State": 0,
-     "States": [
-      {
-       "FontFamily": "",
-       "FontSize": 12,
-       "FontStyle": "",
-       "FontUnderline": false,
-       "Image": "Images/screenshot.png",
-       "OutlineThickness": 2,
-       "ShowTitle": false,
-       "Title": "",
-       "TitleAlignment": "bottom",
-       "TitleColor": "#FFFFFF"
-      }
-     ],
-     "UUID": "com.elgato.streamdeck.system.hotkey"
-    },
     "1,2": {
-     "ActionID": "78608bb0-afbf-4da8-a1a2-fe1f8af69be8",
+     "ActionID": "b2c8fe83-0433-4349-9ed4-91db6a024de3",
      "LinkedTitle": false,
      "Name": "Customize overlays",
      "Plugin": {
@@ -652,7 +626,7 @@
      "UUID": "com.elgato.streamdeck.system.open"
     },
     "0,2": {
-     "ActionID": "953957b5-179e-4be3-9e06-f9f4fd80348e",
+     "ActionID": "3e34d596-c8f7-4b48-bac6-7bb0ecc6974a",
      "LinkedTitle": false,
      "Name": "Switch look (Retail / WoW Forever)",
      "Plugin": {

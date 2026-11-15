@@ -85,7 +85,8 @@ STREAM DECK
     Row 1  Starting Soon | In-Game | BRB | Ending | Outro
            (Ending and Outro both play the outro, then show the thanks screen)
     Row 2  Mic | Desktop audio | Webcam | Sponsors | Alerts   (on/off)
-    Row 3  Back | Customize overlays | Screenshot | Record | GO LIVE
+    Row 3  Screenshot | Customize overlays | Music | Record | GO LIVE
+           (with both looks the first key switches Retail / WoW Forever)
   KEYS THAT SHOW WHAT OBS IS DOING (recommended): install Elgato's free
   "OBS Studio" plugin in the Stream Deck app (Marketplace), then run the
   setup again (or click "Get the OBS plugin" on its last page). Then:
@@ -99,6 +100,17 @@ STREAM DECK
   same, the keys just don't change. Change them in OBS > Settings > Hotkeys
   (search "AD FINEM"). Keyboard only? The same hotkeys work without a
   Stream Deck.
+
+
+MUSIC FOR THE STREAM (Spotify)
+  Setup installs VB-CABLE (free, by VB-Audio - vb-audio.com) and sends
+  Spotify into it. OBS gets it as "AF Music" in every scene and plays it
+  in your headphones too. The Music key (or Ctrl+Alt+Shift+F12) turns it
+  off ONLY in your headphones - the stream keeps the music.
+  Volume on stream: the "AF Music" fader in OBS's Audio Mixer.
+  Another app on stream? Windows Settings > System > Sound > Volume mixer
+  > the app > Output device: "CABLE Input".
+  Tip: only play music you are allowed to stream (DMCA).
 
 
 TWITCH PROFILE (twitch_uploads folder)

@@ -7,6 +7,7 @@
     F13-F16  scenes (set on the scenes themselves; F17 = Ending too, it plays the outro)
     F18 mic   F19 desktop audio   F20 webcam   F21 sponsors   F22 alerts
     F23 screenshot   F24 recording        Ctrl + Shift + F13  start/stop stream
+    F12 music in my headphones on/off (the music stays on stream)
   Webcam, sponsors and alerts are kept the same in every scene: show or hide one (here, in OBS
   or with the Stream Deck's OBS keys) and the others follow.
 ]]
@@ -61,6 +62,61 @@ local function find_webcam()
   return name
 end
 
+-- Music for the stream ("AF Music" = VB-CABLE, Spotify plays into it; set up by the kit's installer).
+-- The item "AF Music - in my headphones" in "AF - In-Game" is the switch (Stream Deck "Music" key or the
+-- hotkey): visible = you hear the music too. The stream always has it. OBS plays it to your headphones
+-- (audio monitoring); Desktop Audio already records everything you hear, so while you listen and Desktop
+-- Audio is on, OBS does not add it a second time.
+local MUSIC, MUSIC_SWITCH = "AF Music", "AF Music - in my headphones"
+local desktop_sh, music_armed = nil, false
+
+local function hear_music()
+  local vis = nil
+  each_scene(function(scene)
+    if vis ~= nil then return end
+    local item = obs.obs_scene_find_source(scene, MUSIC_SWITCH)
+    if item ~= nil then vis = obs.obs_sceneitem_visible(item) end
+  end)
+  return vis ~= false
+end
+
+local function desktop_live()
+  local src = obs.obs_get_output_source(DESKTOP_CHANNEL)
+  if src == nil then return false end
+  local live = obs.obs_source_enabled(src) and not obs.obs_source_muted(src)
+  obs.obs_source_release(src)
+  return live
+end
+
+local function apply_music()
+  obs.timer_remove(apply_music); music_armed = false
+  local m = obs.obs_get_source_by_name(MUSIC)
+  if m == nil then return end
+  local want = obs.OBS_MONITORING_TYPE_NONE                                    -- stream only
+  if hear_music() then
+    want = desktop_live() and obs.OBS_MONITORING_TYPE_MONITOR_ONLY             -- you hear it, Desktop Audio puts it on stream
+                          or obs.OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT        -- you hear it, OBS puts it on stream
+  end
+  if obs.obs_source_get_monitoring_type(m) ~= want then obs.obs_source_set_monitoring_type(m, want) end
+  obs.obs_source_release(m)
+end
+
+local function music_later()
+  if not music_armed then music_armed = true; obs.timer_add(apply_music, 60) end
+end
+
+local function on_desktop_mute(cd) music_later() end
+
+local function toggle_music()
+  local done = false
+  each_scene(function(scene)
+    if done then return end
+    local item = obs.obs_scene_find_source(scene, MUSIC_SWITCH)
+    if item ~= nil then obs.obs_sceneitem_set_visible(item, not obs.obs_sceneitem_visible(item)); done = true end
+  end)
+  music_later()
+end
+
 -- Keep webcam, sponsors and alerts the same in every scene. The Stream Deck's OBS keys switch the
 -- one in "AF - In-Game" (so they can show its state); this copies the change to the other scenes.
 local MIRROR = { ["AF Sponsors"] = true, ["AF Alerts"] = true }
@@ -84,6 +140,7 @@ local function on_item_visible(cd)
   local item = obs.calldata_sceneitem(cd, "item")
   if item == nil then return end
   local name = obs.obs_source_get_name(obs.obs_sceneitem_get_source(item))
+  if name == MUSIC_SWITCH then music_later(); return end
   if MIRROR[name] or (webcam_name ~= nil and name == webcam_name) then
     pending[name] = obs.calldata_bool(cd, "visible")
     if not armed then armed = true; obs.timer_add(mirror_tick, 40) end      -- do it outside the signal
@@ -93,6 +150,11 @@ end
 local function unhook_scenes()
   for _, sh in ipairs(handlers) do obs.signal_handler_disconnect(sh, "item_visible", on_item_visible) end
   handlers = {}
+  if desktop_sh ~= nil then
+    obs.signal_handler_disconnect(desktop_sh, "mute", on_desktop_mute)
+    obs.signal_handler_disconnect(desktop_sh, "enable", on_desktop_mute)
+    desktop_sh = nil
+  end
 end
 
 local function hook_scenes()
@@ -107,6 +169,14 @@ local function hook_scenes()
     obs.source_list_release(scenes)
   end
   webcam_name = find_webcam()
+  local d = obs.obs_get_output_source(DESKTOP_CHANNEL)
+  if d ~= nil then
+    desktop_sh = obs.obs_source_get_signal_handler(d)
+    obs.signal_handler_connect(desktop_sh, "mute", on_desktop_mute)
+    obs.signal_handler_connect(desktop_sh, "enable", on_desktop_mute)
+    obs.obs_source_release(d)
+  end
+  music_later()
 end
 
 local function on_frontend_event(ev)
@@ -129,6 +199,8 @@ local HOTKEYS = {
     fn = function() toggle_item("AF Sponsors") end },
   { id = "adfinem_alerts",   desc = "AD FINEM: Show / hide alerts",          key = "OBS_KEY_F22", mods = "cas",
     fn = function() toggle_item("AF Alerts") end },
+  { id = "adfinem_music",    desc = "AD FINEM: Music in my headphones on / off (stays on stream)", key = "OBS_KEY_F12", mods = "cas",
+    fn = function() toggle_music() end },
   { id = "adfinem_shot",     desc = "AD FINEM: Screenshot",                  key = "OBS_KEY_F23", mods = "cas",
     fn = function() obs.obs_frontend_take_screenshot() end },
   { id = "adfinem_rec",      desc = "AD FINEM: Start / stop recording",      key = "OBS_KEY_F24", mods = "cas",

@@ -34,7 +34,9 @@ SCENES = [("0,0", "AF - Starting Soon", "scene_starting"), ("1,0", "AF - In-Game
 # visibility to the same source in every other AD FINEM scene
 ITEMS = [("2,1", "Show / hide webcam", "Webcam (pick your camera)", 2, "cam"),
          ("3,1", "Show / hide sponsors", "AF Sponsors", 5, "sponsors"),
-         ("4,1", "Show / hide alerts", "AF Alerts", 4, "alerts")]
+         ("4,1", "Show / hide alerts", "AF Alerts", 4, "alerts"),
+         # the switch for music in your headphones (the stream always has it) - read by the kit's OBS script
+         ("2,2", "Music in my headphones on / off", "AF Music - in my headphones", 7, "music")]
 
 
 def hotkey(fn, ctrl=True, alt=True, shift=True):
@@ -89,15 +91,15 @@ def layout(mode, collection, nav):
         a["1,1"] = hk("Mute / unmute desktop audio", "desktop.png", 19)
         a["2,1"] = hk("Show / hide webcam", "cam.png", 20)
         a["3,1"] = hk("Show / hide sponsors", "sponsors.png", 21)
+        a["2,2"] = hk("Music in my headphones on / off", "music.png", 12)
         a["4,1"] = hk("Show / hide alerts", "alerts.png", 22)
         a["3,2"] = hk("Start / stop recording", "record.png", 24)
         a["4,2"] = hk("Start / stop stream", "live.png", 13, alt=False)
     a["4,0"] = hk("Scene: Ending + outro", "scene_outro.png", 17)        # plays the outro, then Ending
-    a["2,2"] = hk("Screenshot", "screenshot.png", 23)
     a["1,2"] = action("Customize overlays", "com.elgato.streamdeck.system.open", "Open",
                       {"openInBrowser": False, "path": "__EDITOR__"}, "editor.png")
     if nav is None:
-        a["0,2"] = action("Previous page", "com.elgato.streamdeck.page.previous", "Pages", {}, "back.png")
+        a["0,2"] = hk("Screenshot", "screenshot.png", 23)
     else:
         a["0,2"] = action("Switch look (Retail / WoW Forever)", "com.elgato.streamdeck.page." + nav, "Pages", {}, "page_other.png")
     return a

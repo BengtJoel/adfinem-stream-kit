@@ -3,7 +3,7 @@
   {
    "Actions": {
     "0,0": {
-     "ActionID": "dc942911-8b8d-4abf-a2b8-94efba7bca0a",
+     "ActionID": "6ab3fe24-b25c-4b32-8cef-0746cf1f7440",
      "LinkedTitle": false,
      "Name": "Scene: Starting Soon",
      "Plugin": {
@@ -74,7 +74,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "1,0": {
-     "ActionID": "b65fdaf6-17bf-496a-88e6-f2289779ab33",
+     "ActionID": "c27a96ff-8249-4772-ab12-1c71450a9bc9",
      "LinkedTitle": false,
      "Name": "Scene: In-Game",
      "Plugin": {
@@ -145,7 +145,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "2,0": {
-     "ActionID": "53e91677-0754-44e6-a3e5-9d1736895eeb",
+     "ActionID": "bb74b942-935c-4ea2-b8c4-2247b4a7ec19",
      "LinkedTitle": false,
      "Name": "Scene: BRB",
      "Plugin": {
@@ -216,7 +216,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "3,0": {
-     "ActionID": "644c1b9a-8b5d-49d7-b8a3-c0c5d5a0133e",
+     "ActionID": "c9378ec3-7721-4587-af04-0424b5ad9359",
      "LinkedTitle": false,
      "Name": "Scene: Ending",
      "Plugin": {
@@ -287,7 +287,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "0,1": {
-     "ActionID": "91fc0d3a-dbc9-4384-9651-35b69f8a45c4",
+     "ActionID": "46ff4ef2-4802-4c8a-82ec-09ee1b4884e5",
      "LinkedTitle": false,
      "Name": "Mute / unmute mic",
      "Plugin": {
@@ -358,7 +358,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "1,1": {
-     "ActionID": "571e73ed-4842-444f-b208-bbfc5c7f9903",
+     "ActionID": "f02d8f1a-ec59-4df7-9fc8-a6501e89b8aa",
      "LinkedTitle": false,
      "Name": "Mute / unmute desktop audio",
      "Plugin": {
@@ -429,7 +429,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "2,1": {
-     "ActionID": "22230646-2aa5-4fff-bf3a-baea98e1d7a8",
+     "ActionID": "68904d43-5a45-41c7-bb39-7fcd5197d733",
      "LinkedTitle": false,
      "Name": "Show / hide webcam",
      "Plugin": {
@@ -500,7 +500,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "3,1": {
-     "ActionID": "07f329d3-0469-4d27-b877-2bd15896d801",
+     "ActionID": "d1668a59-6e73-49ee-81e5-bc5cf7a35b37",
      "LinkedTitle": false,
      "Name": "Show / hide sponsors",
      "Plugin": {
@@ -570,8 +570,79 @@
      ],
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
+    "2,2": {
+     "ActionID": "4558c8fb-7de3-4bae-9b22-2463197bbfc7",
+     "LinkedTitle": false,
+     "Name": "Music in my headphones on / off",
+     "Plugin": {
+      "Name": "Activate a Key Command",
+      "UUID": "com.elgato.streamdeck.system.hotkey",
+      "Version": "1.0"
+     },
+     "Settings": {
+      "Coalesce": true,
+      "Hotkeys": [
+       {
+        "KeyCmd": false,
+        "KeyCtrl": true,
+        "KeyModifiers": 7,
+        "KeyOption": true,
+        "KeyShift": true,
+        "NativeCode": 123,
+        "QTKeyCode": 16777275,
+        "VKeyCode": 123
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       },
+       {
+        "KeyCmd": false,
+        "KeyCtrl": false,
+        "KeyModifiers": 0,
+        "KeyOption": false,
+        "KeyShift": false,
+        "NativeCode": 0,
+        "QTKeyCode": 33554431,
+        "VKeyCode": -1
+       }
+      ]
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/music.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.streamdeck.system.hotkey"
+    },
     "4,1": {
-     "ActionID": "1708663d-a379-4868-88ea-97b48f44193d",
+     "ActionID": "097f1ef9-0637-4eb3-8e3b-8dcd9b7fd6eb",
      "LinkedTitle": false,
      "Name": "Show / hide alerts",
      "Plugin": {
@@ -642,7 +713,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "3,2": {
-     "ActionID": "463114c6-7d0c-4821-b748-a333147ef4fa",
+     "ActionID": "ecbde695-ba1d-4928-9fe7-d5559c90e017",
      "LinkedTitle": false,
      "Name": "Start / stop recording",
      "Plugin": {
@@ -713,7 +784,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "4,2": {
-     "ActionID": "4d3bf417-55ba-4db4-9b53-0e559619981a",
+     "ActionID": "29969f1e-5f9a-4c15-af5c-8d01757bc247",
      "LinkedTitle": false,
      "Name": "Start / stop stream",
      "Plugin": {
@@ -784,7 +855,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "4,0": {
-     "ActionID": "54297b9d-021c-481c-81a7-876f5958b647",
+     "ActionID": "c7b627da-3327-4d94-be28-48b1e988a2e4",
      "LinkedTitle": false,
      "Name": "Scene: Ending + outro",
      "Plugin": {
@@ -854,8 +925,38 @@
      ],
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
-    "2,2": {
-     "ActionID": "0a61b141-651d-470c-85b2-ed56f4c1bcbc",
+    "1,2": {
+     "ActionID": "4400ed7f-c5e0-4983-8ff9-ab987a4a8573",
+     "LinkedTitle": false,
+     "Name": "Customize overlays",
+     "Plugin": {
+      "Name": "Open",
+      "UUID": "com.elgato.streamdeck.system.open",
+      "Version": "1.0"
+     },
+     "Settings": {
+      "openInBrowser": false,
+      "path": "__EDITOR__"
+     },
+     "State": 0,
+     "States": [
+      {
+       "FontFamily": "",
+       "FontSize": 12,
+       "FontStyle": "",
+       "FontUnderline": false,
+       "Image": "Images/editor.png",
+       "OutlineThickness": 2,
+       "ShowTitle": false,
+       "Title": "",
+       "TitleAlignment": "bottom",
+       "TitleColor": "#FFFFFF"
+      }
+     ],
+     "UUID": "com.elgato.streamdeck.system.open"
+    },
+    "0,2": {
+     "ActionID": "0d5fb1d7-c358-4f8d-974a-1711686640a4",
      "LinkedTitle": false,
      "Name": "Screenshot",
      "Plugin": {
@@ -924,63 +1025,6 @@
       }
      ],
      "UUID": "com.elgato.streamdeck.system.hotkey"
-    },
-    "1,2": {
-     "ActionID": "6ffc6ba9-c24f-45ee-b221-eeb3c92749b1",
-     "LinkedTitle": false,
-     "Name": "Customize overlays",
-     "Plugin": {
-      "Name": "Open",
-      "UUID": "com.elgato.streamdeck.system.open",
-      "Version": "1.0"
-     },
-     "Settings": {
-      "openInBrowser": false,
-      "path": "__EDITOR__"
-     },
-     "State": 0,
-     "States": [
-      {
-       "FontFamily": "",
-       "FontSize": 12,
-       "FontStyle": "",
-       "FontUnderline": false,
-       "Image": "Images/editor.png",
-       "OutlineThickness": 2,
-       "ShowTitle": false,
-       "Title": "",
-       "TitleAlignment": "bottom",
-       "TitleColor": "#FFFFFF"
-      }
-     ],
-     "UUID": "com.elgato.streamdeck.system.open"
-    },
-    "0,2": {
-     "ActionID": "e6c78b2c-8574-4133-846d-d782a71f5f86",
-     "LinkedTitle": false,
-     "Name": "Previous page",
-     "Plugin": {
-      "Name": "Pages",
-      "UUID": "com.elgato.streamdeck.page",
-      "Version": "1.0"
-     },
-     "Settings": {},
-     "State": 0,
-     "States": [
-      {
-       "FontFamily": "",
-       "FontSize": 12,
-       "FontStyle": "",
-       "FontUnderline": false,
-       "Image": "Images/back.png",
-       "OutlineThickness": 2,
-       "ShowTitle": false,
-       "Title": "",
-       "TitleAlignment": "bottom",
-       "TitleColor": "#FFFFFF"
-      }
-     ],
-     "UUID": "com.elgato.streamdeck.page.previous"
     }
    },
    "Type": "Keypad"

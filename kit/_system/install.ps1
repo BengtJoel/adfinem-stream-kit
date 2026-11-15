@@ -6,7 +6,8 @@ param(
   [string]$Camera = $null,        # webcam name as Windows shows it; '' = leave as it is
   [string]$Mic = $null,           # 'default', a Windows audio endpoint id, or '' = leave as it is
   [string]$MicFilters = $null,    # e.g. 'ns,gate,comp,limit'; 'none' = no kit filters; '' = leave as it is
-  [string]$Edition = $null        # 'retail', 'forever' (WoW Forever look) or 'both' (two OBS scene collections); '' = keep the one installed
+  [string]$Edition = $null,       # 'retail', 'forever' (WoW Forever look) or 'both' (two OBS scene collections); '' = keep the one installed
+  [string]$Music = 'auto'         # 'auto': stream music channel (VB-CABLE + Spotify + "AF Music" in OBS); 'off': leave audio alone
 )
 
 $ErrorActionPreference = 'Stop'
@@ -125,6 +126,22 @@ function Set-Devices([string]$json) {
         Say "    Mic filters: $(if ($list.Count) { ($list | ForEach-Object { $_.name }) -join ', ' } else { 'none' })" 'Green'
       }
     }
+  }
+  # "AF Music": the stream music channel (VB-CABLE's CABLE Output) as an extra OBS audio device, so it is in
+  # every scene. The kit's OBS script decides if you hear it (Stream Deck "Music" key / hotkey).
+  if ($script:musicDevice) {
+    $slots = 'AuxAudioDevice2', 'AuxAudioDevice3', 'AuxAudioDevice4'
+    $slot = $slots | Where-Object { $c.PSObject.Properties[$_] -and $c.$_.name -eq 'AF Music' } | Select-Object -First 1
+    if (-not $slot) { $slot = $slots | Where-Object { -not $c.PSObject.Properties[$_] } | Select-Object -First 1 }
+    if ($slot) {
+      if ($c.PSObject.Properties[$slot]) { $m = $c.$slot; Set-Prop $m.settings 'device_id' $script:musicDevice }
+      else {
+        $m = New-Filter 'AF Music' 'wasapi_input_capture' 'wasapi_input_capture' ([pscustomobject]@{ device_id = $script:musicDevice })
+        Set-Prop $m 'mixers' 255; Set-Prop $m 'volume' 0.35; Set-Prop $m 'monitoring_type' 1; Set-Prop $m 'filters' @()
+        Set-Prop $c $slot $m
+      }
+      Say '    Music channel "AF Music" is in every scene (Spotify plays into it).' 'Green'
+    } else { Say '    (All extra OBS audio slots are in use - "AF Music" was not added.)' 'Yellow' }
   }
   # the placeholder picture sits exactly where the webcam is
   foreach ($s in @($c.sources)) {
@@ -304,6 +321,21 @@ if (Test-Path $oldEditor) { Remove-Item $oldEditor -Force }
 
 # ---------------------------------------------------------------- 4. OBS scene collection
 Step 4 'Adding the AD FINEM scene collection to OBS'
+# Music for the stream: VB-CABLE (free, from vb-audio.com) is the "cable" Spotify plays into. OBS puts it on
+# the stream and plays it in your headphones only when you want (the Music key).
+$script:musicDevice = $null
+if ($Music -ne 'off' -and [Environment]::OSVersion.Version.Build -ge 19041) {
+  try {
+    . (Join-Path $dest '_system\audio\af-audio.ps1')
+    $log = { param($t) Say "    $t" }
+    if (-not (Find-AfCable)) { [void](Install-AfCable -Log $log) }
+    $cable = Find-AfCable
+    if ($cable) {
+      $script:musicDevice = $cable.Output
+      [void](Set-AfSpotifyToCable -Log $log)
+    }
+  } catch { Say "    (Music channel skipped: $($_.Exception.Message))" 'Yellow' }
+}
 $scenesDir = Join-Path $env:APPDATA 'obs-studio\basic\scenes'
 New-Item -ItemType Directory -Force -Path $scenesDir | Out-Null
 $template = [IO.File]::ReadAllText((Join-Path $dest '_system\obs_template.json'))
