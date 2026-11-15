@@ -12,6 +12,12 @@ $current = $current.Trim()
 $cfg = Get-Content (Join-Path $sys 'update.json') -Raw | ConvertFrom-Json
 $stateFile = Join-Path $sys 'update_state.json'
 
+# (runs when OBS starts) the music cable must never be the Windows default speaker/microphone
+if (-not $Json -and -not $Install) {
+  try { $af = Join-Path $sys 'audio\af-audio.ps1'; if (Test-Path $af) { . $af; Repair-AfDefaults -Log { param($t) } } } catch {}
+  $ErrorActionPreference = 'Stop'
+}
+
 function Out-Status($o) { if ($Json) { $o | ConvertTo-Json -Compress } }
 function ParseVer($v) { try { [version](($v -replace '^[vV]', '') -replace '[^0-9.].*$', '') } catch { [version]'0.0.0' } }
 

@@ -185,6 +185,30 @@ function Get-AfDefaults {
     try { $d["$f/$r"] = [AfAudio.Api]::GetDefault([AfAudio.EDataFlow]$f, [AfAudio.ERole]$r) } catch {} } }
   $d
 }
+# never leave the cable as the Windows default: put back what was default before, or else the first real device
+$AF_DEFAULTS_FILE = Join-Path $PSScriptRoot 'defaults_before_cable.json'
+function Save-AfDefaults($saved) { try { ($saved | ConvertTo-Json) | Set-Content $AF_DEFAULTS_FILE -Encoding UTF8 } catch {} }
+function Repair-AfDefaults([scriptblock]$Log = { param($t) Write-Host $t }) {
+  $all = @(Get-AfEndpoints)
+  $cableIds = @($all | Where-Object { $_.Name -match 'CABLE (Input|Output)' } | ForEach-Object { $_.Id })
+  if (-not $cableIds.Count) { return }
+  $saved = @{}
+  try { $j = Get-Content $AF_DEFAULTS_FILE -Raw -ErrorAction Stop | ConvertFrom-Json; foreach ($p in $j.PSObject.Properties) { $saved[$p.Name] = $p.Value } } catch {}
+  $fixed = $false
+  foreach ($f in 'Render', 'Capture') {
+    $flow = $(if ($f -eq 'Render') { 'playback' } else { 'recording' })
+    $real = @($all | Where-Object { $_.Flow -eq $flow -and $cableIds -notcontains $_.Id })
+    foreach ($r in 'Console', 'Multimedia', 'Communications') {
+      $cur = $null; try { $cur = [AfAudio.Api]::GetDefault([AfAudio.EDataFlow]$f, [AfAudio.ERole]$r) } catch {}
+      if (-not $cur -or $cableIds -notcontains $cur) { continue }
+      $want = $saved["$f/$r"]
+      if (-not $want -or $cableIds -contains $want -or -not ($real | Where-Object { $_.Id -eq $want })) { $want = ($real | Select-Object -First 1).Id }
+      if ($want) { try { [AfAudio.Api]::SetDefault($want, [AfAudio.ERole]$r); $fixed = $true } catch {} }
+    }
+  }
+  if ($fixed) { & $Log 'Your speakers/headset and microphone are the Windows default again (not the cable).' }
+}
+
 function Restore-AfDefaults($saved) {
   foreach ($k in $saved.Keys) {
     if (-not $saved[$k]) { continue }
@@ -203,6 +227,7 @@ $AF_CABLE_PACKS = @(
 function Install-AfCable([scriptblock]$Log = { param($t) Write-Host $t }) {
   if (Find-AfCable) { & $Log 'VB-CABLE is already installed.'; return $true }
   $saved = Get-AfDefaults
+  Save-AfDefaults $saved
   $tmp = Join-Path $env:TEMP ('adfinem_vbcable_' + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Force -Path $tmp | Out-Null
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -223,7 +248,9 @@ function Install-AfCable([scriptblock]$Log = { param($t) Write-Host $t }) {
     $p = Start-Process -FilePath $setup -ArgumentList '-i', '-h' -Verb RunAs -WorkingDirectory (Split-Path $setup) -PassThru -Wait
   } catch { & $Log 'VB-CABLE was not installed (permission was not given).'; return $false }
   for ($i = 0; $i -lt 20 -and -not (Find-AfCable); $i++) { Start-Sleep -Milliseconds 500 }
-  Restore-AfDefaults $saved           # Windows likes to make a new device the default - put yours back
+  # Windows makes a new device the default - sometimes several seconds later. Put yours back, and keep
+  # watching for a while so a late switch is undone too.
+  for ($i = 0; $i -lt 20; $i++) { Restore-AfDefaults $saved; Start-Sleep -Seconds 1 }
   Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
   if (Find-AfCable) { & $Log 'VB-CABLE installed.'; return $true }
   & $Log 'VB-CABLE is installed but Windows needs a restart before it shows up.'

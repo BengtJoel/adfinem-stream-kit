@@ -332,6 +332,7 @@ if ($Music -ne 'off' -and [Environment]::OSVersion.Version.Build -ge 19041) {
     $log = { param($t) Say "    $t" }
     if (-not (Find-AfCable)) { [void](Install-AfCable -Log $log) }
     $cable = Find-AfCable
+    Repair-AfDefaults -Log $log           # the cable must never be your default speaker or microphone
     if ($cable) {
       $script:musicDevice = $cable.Output
       [void](Set-AfSpotifyToCable -Log $log)
