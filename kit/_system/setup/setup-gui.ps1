@@ -464,7 +464,7 @@ $timer.Add_Tick({
       $bar.Value = 6
       $lines = @($(if ($script:edition -eq 'both') { "Open OBS and choose Scene Collection > AD FINEM (Retail) or AD FINEM Forever." } else { "Open OBS and choose Scene Collection > AD FINEM." }))
       if (-not $script:obsExe) { $lines = @('Install OBS Studio, then run this setup again to add the scenes.') }
-      $lines += "Change texts, alerts and sponsors with ""AD FINEM - Customize overlays"" on your desktop."
+      $lines += "Change texts, alerts and sponsors later with ""AD FINEM - Customize overlays"" - on your desktop and in the Start menu (type AD FINEM)."
       $lines += "Your webcam shows the AD FINEM picture until the camera is on."
       $doneText.Text = $lines -join "`r`n`r`n"
       $btnOpenObs.Visible = [bool]$script:obsExe
