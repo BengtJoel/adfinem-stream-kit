@@ -15,8 +15,10 @@ Remove-TypeData System.Array -ErrorAction SilentlyContinue      # PS 5.1: keeps 
 try { $Host.UI.RawUI.WindowTitle = 'AD FINEM Stream Kit - Installer' } catch {}
 
 # In -Quiet mode (graphical setup, updates) everything goes to stdout as @@ lines the setup window reads.
-function Say($text, $color = 'Gray') { if ($Quiet) { Write-Output ("@@LOG " + $text.Trim()) } else { Write-Host $text -ForegroundColor $color } }
-function Step($n, $text) { if ($Quiet) { Write-Output "@@STEP $n $text" } else { Write-Host ''; Write-Host "[$n] $text" -ForegroundColor DarkYellow } }
+# Straight to stdout, NOT the PowerShell pipeline: Say is also used inside functions that return the scene
+# collection, and pipeline output would end up inside the JSON file (OBS then can't read it).
+function Say($text, $color = 'Gray') { if ($Quiet) { [Console]::Out.WriteLine("@@LOG " + $text.Trim()); [Console]::Out.Flush() } else { Write-Host $text -ForegroundColor $color } }
+function Step($n, $text) { if ($Quiet) { [Console]::Out.WriteLine("@@STEP $n $text"); [Console]::Out.Flush() } else { Write-Host ''; Write-Host "[$n] $text" -ForegroundColor DarkYellow } }
 if ($Quiet) { try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {} }
 
 # Update = new kit scenes, but keep what the streamer set up in OBS themselves.
@@ -194,7 +196,7 @@ Step 2 'Making sure OBS is closed'
 $told = $false
 while (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) {
   if ($Quiet) {
-    if (-not $told) { Say '    OBS is open. Please close OBS - the update continues by itself.' 'Yellow'; Write-Output '@@OBS_OPEN'; $told = $true }
+    if (-not $told) { Say '    OBS is open. Please close OBS - the update continues by itself.' 'Yellow'; [Console]::Out.WriteLine('@@OBS_OPEN'); $told = $true }
     Start-Sleep -Seconds 2
   } else {
     Say '    OBS is open. Please close OBS, then press Enter here.' 'Yellow'
@@ -202,7 +204,7 @@ while (Get-Process -Name obs64, obs32 -ErrorAction SilentlyContinue) {
   }
 }
 Say '    OK' 'Green'
-if ($told) { Write-Output '@@OBS_CLOSED' }
+if ($told) { [Console]::Out.WriteLine('@@OBS_CLOSED') }
 
 # ---------------------------------------------------------------- 3. copy the kit
 Step 3 'Copying the kit'
@@ -341,6 +343,12 @@ New-Item -ItemType Directory -Force -Path $scenesDir | Out-Null
 $template = [IO.File]::ReadAllText((Join-Path $dest '_system\obs_template.json'))
 $kitPath  = $dest.Replace('\', '/')
 $base     = $template.Replace('__KIT__', $kitPath)
+function Get-JsonOnly($out) {   # the collection JSON from a function's output (drops any stray lines before it)
+  $t = (@($out) | ForEach-Object { "$_" }) -join "`n"
+  $i = $t.IndexOf('{'); if ($i -gt 0) { $t = $t.Substring($i) }
+  [void]($t | ConvertFrom-Json)    # throws if it is not valid - then the file is not written
+  return $t
+}
 function Write-Collection([string]$fileName, [string]$json) {
   $target = Join-Path $scenesDir $fileName
   $fresh = -not (Test-Path $target)
@@ -349,12 +357,12 @@ function Write-Collection([string]$fileName, [string]$json) {
     New-Item -ItemType Directory -Force -Path $bk | Out-Null
     Copy-Item $target (Join-Path $bk ($fileName.Replace('.json', '') + '_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.json'))
     try {
-      $merged = Merge-Collection $json ([IO.File]::ReadAllText($target))
+      $merged = Get-JsonOnly (Merge-Collection $json (Get-JsonOnly ([IO.File]::ReadAllText($target))))
       if ($merged) { $json = $merged; Say '    Kept your webcam, game capture, audio devices and your own scenes.' 'Green' }
     } catch { Say "    (Could not keep your old OBS picks: $($_.Exception.Message) - set webcam/game again.)" 'Yellow' }
   }
   if ($fresh -and -not $MicFilters) { $MicFilters = 'ns,gate,comp,limit' }   # new setups get a clean mic
-  try { $json = Set-Devices $json } catch { Say "    (Could not set camera/mic: $($_.Exception.Message) - pick them in OBS.)" 'Yellow' }
+  try { $json = Get-JsonOnly (Set-Devices $json) } catch { Say "    (Could not set camera/mic: $($_.Exception.Message) - pick them in OBS.)" 'Yellow' }
   [IO.File]::WriteAllText($target, $json, (New-Object Text.UTF8Encoding $false))
   Say "    Written: $target" 'Green'
   # check that every file the scenes use is there
@@ -457,5 +465,5 @@ if ($obsExe -and -not $Quiet) {
   if ($go -match '^[YyJj]') { Start-Process -FilePath $obsExe -WorkingDirectory (Split-Path $obsExe) }
 }
 
-if ($Quiet) { Write-Output '@@DONE' }
+if ($Quiet) { [Console]::Out.WriteLine('@@DONE'); [Console]::Out.Flush() }
 exit 0
