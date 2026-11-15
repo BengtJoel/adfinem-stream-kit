@@ -13,7 +13,9 @@ $tpl = Join-Path $Dest "_system\streamdeck\templates\$Edition-$mode"
 if (-not (Test-Path $tpl)) { Write-Output 'none'; return }
 $tmp = Join-Path $env:TEMP ('adfinem_sd_' + [guid]::NewGuid().ToString('N'))
 Copy-Item $tpl $tmp -Recurse
-$editorPath = (Join-Path $Dest 'Customize overlays.bat').Replace('\', '\\')
+$editor = Join-Path $Dest 'Customize overlays.exe'      # the Stream Deck's Open action runs .exe reliably, .bat not always
+if (-not (Test-Path $editor)) { $editor = Join-Path $Dest 'Customize overlays.bat' }
+$editorPath = $editor.Replace('\', '\\')
 Get-ChildItem $tmp -Recurse -Filter 'manifest.json' | ForEach-Object {
   $t = [IO.File]::ReadAllText($_.FullName).Replace('__EDITOR__', $editorPath)
   [IO.File]::WriteAllText($_.FullName, $t, (New-Object Text.UTF8Encoding $false))

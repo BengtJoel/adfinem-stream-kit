@@ -357,11 +357,16 @@ Step 5 'Creating shortcuts (desktop + Start menu)'
 try {
   $ws = New-Object -ComObject WScript.Shell
   $ico = (Join-Path $dest '_system\adfinem.ico') + ',0'
+  $edExe = Join-Path $dest 'Customize overlays.exe'
   function New-EditorLink($path) {
     $s = $ws.CreateShortcut($path)
-    $s.TargetPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $s.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "' + (Join-Path $dest '_system\editor.ps1') + '"'
-    $s.WorkingDirectory = $dest; $s.IconLocation = $ico; $s.WindowStyle = 7
+    if (Test-Path $edExe) { $s.TargetPath = $edExe; $s.Arguments = '' }   # no console window
+    else {
+      $s.TargetPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+      $s.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "' + (Join-Path $dest '_system\editor.ps1') + '"'
+      $s.WindowStyle = 7
+    }
+    $s.WorkingDirectory = $dest; $s.IconLocation = $ico
     $s.Description = 'Change texts, alerts, goal and sponsors on the AD FINEM stream overlays'
     $s.Save()
   }
@@ -377,7 +382,7 @@ try {
   $u = $ws.CreateShortcut((Join-Path $start 'Uninstall AD FINEM Stream Kit.lnk'))
   $u.TargetPath = Join-Path $dest 'UNINSTALL.bat'; $u.WorkingDirectory = $dest; $u.IconLocation = $ico; $u.Save()
   Say '    "AD FINEM - Customize overlays" is on your desktop and in the Start menu (type "AD FINEM").' 'Green'
-} catch { Say '    Could not create shortcuts (not a problem - use "Customize overlays.bat" in the kit folder).' 'Yellow' }
+} catch { Say '    Could not create shortcuts (not a problem - use "Customize overlays.exe" in the kit folder).' 'Yellow' }
 
 # ---------------------------------------------------------------- 6. Stream Deck
 Step 6 'Making the Stream Deck page'

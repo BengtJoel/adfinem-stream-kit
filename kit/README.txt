@@ -21,7 +21,7 @@ INSTALL (2 minutes)
 
 CHANGE THE TEXTS
   Double-click "AD FINEM - Customize overlays" on your desktop, or find
-  it in the Start menu (type AD FINEM), or "Customize overlays.bat" in the
+  it in the Start menu (type AD FINEM), or "Customize overlays.exe" in the
   kit folder (Documents\AD FINEM Stream Kit). No need to run Setup again.
   Edit, click SAVE. OBS updates by itself within a few seconds.
   Save always writes to settings.js in the kit folder - there is no

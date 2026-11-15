@@ -391,7 +391,11 @@ $btnDeck = New-Button 'Add Stream Deck page' 468 200 200
 $p.Controls.AddRange(@($btnOpenObs, $btnEditor, $btnDeck))
 $p.Controls.Add((New-Label 'Updates are offered automatically when OBS starts.' 40 262 680 22 $F_SMALL $cMUTED))
 $btnOpenObs.Add_Click({ if ($script:obsExe) { Start-Process -FilePath $script:obsExe -WorkingDirectory (Split-Path $script:obsExe) } })
-$btnEditor.Add_Click({ Start-Process powershell -WindowStyle Minimized -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Minimized', '-File', "`"$(Join-Path $dest '_system\editor.ps1')`"") })
+$btnEditor.Add_Click({
+  $exe = Join-Path $dest 'Customize overlays.exe'
+  if (Test-Path $exe) { Start-Process -FilePath $exe -WorkingDirectory $dest }
+  else { Start-Process powershell -WindowStyle Minimized -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Minimized', '-File', "`"$(Join-Path $dest '_system\editor.ps1')`"") }
+})
 $btnDeck.Add_Click({ $f = Join-Path $dest 'AD FINEM.streamDeckProfile'; if (Test-Path $f) { Start-Process $f } })
 
 # Stream Deck: keys that show what OBS is doing need Elgato's free "OBS Studio" plugin
