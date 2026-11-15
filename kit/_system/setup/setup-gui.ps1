@@ -70,6 +70,21 @@ function New-Check($text, $sub, $x, $y, $checked) {
 }
 function Style-Combo($cb) { $cb.BackColor = $cPANEL; $cb.ForeColor = $cTEXT; $cb.FlatStyle = 'Flat'; $cb.Font = $F_BODY }
 
+# Start a program with no console window at all. (-WindowStyle Hidden is not enough when Windows
+# Terminal is the default console: it still opens a terminal.) Output goes to files if given.
+function Start-Hidden([string]$exe, [string[]]$argv, [string]$out = '', [string]$err = '') {
+  $line = ($argv | ForEach-Object { if ($_ -match '^".*"$' -or $_ -notmatch '\s') { $_ } else { '"' + $_ + '"' } }) -join ' '
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true
+  if ($out) {   # cmd does the redirecting; it and the program share one invisible console
+    $psi.FileName = Join-Path $env:WINDIR 'System32\cmd.exe'
+    $psi.Arguments = '/d /s /c ""' + $exe + '" ' + $line + ' 1> "' + $out + '" 2> "' + $err + '""'
+  } else { $psi.FileName = $exe; $psi.Arguments = $line }
+  $p = [System.Diagnostics.Process]::Start($psi)
+  $null = $p.Handle
+  $p
+}
+
 # ------------------------------------------------------------------ what's on this PC
 function Find-Obs {
   $c = @((Join-Path $env:ProgramFiles 'obs-studio\bin\64bit\obs64.exe'),
@@ -195,7 +210,7 @@ $script:wingetProc = $null
 $btnObs.Add_Click({
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Start-Process 'https://obsproject.com/download'; return }
   $btnObs.Enabled = $false; $btnObs.Text = 'Installing OBS...'
-  $script:wingetProc = Start-Process winget -ArgumentList 'install -e --id OBSProject.OBSStudio --accept-package-agreements --accept-source-agreements' -WindowStyle Hidden -PassThru
+  $script:wingetProc = Start-Hidden (Get-Command winget).Source @('install', '-e', '--id', 'OBSProject.OBSStudio', '--accept-package-agreements', '--accept-source-agreements')
   $wt = New-Object System.Windows.Forms.Timer; $wt.Interval = 1500
   $wt.Add_Tick({ if ($script:wingetProc.HasExited) { $this.Stop(); $script:obsExe = Find-Obs; $btnObs.Enabled = $true; $btnObs.Text = 'Install OBS (free)'; Update-ObsStatus } })
   $wt.Start()
@@ -455,7 +470,7 @@ function Start-Install {
     } catch {}
   }
   Remove-Item $outFile, $errFile -ErrorAction SilentlyContinue
-  $script:proc = Start-Process powershell -ArgumentList $args2 -WindowStyle Hidden -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+  $script:proc = Start-Hidden (Join-Path $PSHOME 'powershell.exe') $args2 $outFile $errFile
   $null = $script:proc.Handle   # keep the handle so ExitCode is readable later (PowerShell quirk)
   $script:readPos = 0
   $timer.Start()
