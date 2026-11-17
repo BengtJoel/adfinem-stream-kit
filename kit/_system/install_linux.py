@@ -6,6 +6,7 @@ Started by install-linux.sh (Linux) or INSTALL-mac.command (macOS). Safe to run 
   2. copies the kit to ~/Documents/AD FINEM Stream Kit
   3. adds the "AD FINEM" scene collection to OBS, using Linux / macOS capture sources
   4. adds an "AD FINEM - Customize overlays" launcher (Linux: app menu, macOS: Desktop)
+  5. Linux: adds the AD FINEM Stream Deck page to OpenDeck
 """
 import datetime
 import uuid
@@ -536,6 +537,17 @@ def main():
             say('    App menu: "AD FINEM - Customize overlays"', GREEN)
         except Exception as e:
             say(f"    Couldn't add the launcher ({e}). Use customize-overlays-linux.sh in the kit folder.", YELLOW)
+
+        # ------------------------------------------------------------ 6. Stream Deck (OpenDeck)
+        step(6, "Making the Stream Deck page (OpenDeck)")
+        try:
+            sys.path.insert(0, os.path.join(dest, "_system", "streamdeck"))
+            import make_opendeck
+            ok, lines = make_opendeck.make(dest, edition)
+            for line in lines:
+                say("    " + line, GREEN if ok else DIM)
+        except Exception as e:
+            say(f"    Could not make the Stream Deck page ({e}) - not a problem.", YELLOW)
 
     say(f"\n  {GREEN}Done!{END}")
     if edition == "both":
