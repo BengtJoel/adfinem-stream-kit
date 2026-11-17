@@ -31,5 +31,6 @@ Updates are offered automatically when OBS starts. Your texts, sponsors, Twitch 
 **Mac:** download the `.zip`, unzip it, then double-click `INSTALL-mac.command` (first time: right-click > Open). Needs macOS 13+.
 
 **Linux:** download the `.zip`, unzip it, then run `bash install-linux.sh` in the folder (add `--forever` for the WoW Forever look, or `--both`).
+Have a Stream Deck? Install [OpenDeck](https://github.com/nekename/OpenDeck) and its "OBS Studio" plugin first; the installer adds the AD FINEM page to it.
 
 Need help? Send a DM in the Ad Finem Discord. To the end.

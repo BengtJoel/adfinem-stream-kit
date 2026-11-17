@@ -147,6 +147,15 @@ LINUX
   Remove:    bash uninstall-linux.sh
   Game capture uses PipeWire on Wayland (OBS asks you to pick the WoW
   window) or window capture on X11. Webcam: Video Capture Device (V4L2).
+  Stream Deck: Elgato's app does not run on Linux, so the kit uses
+  OpenDeck (github.com/nekename/OpenDeck). Install OpenDeck, plug in the
+  deck, add the "OBS Studio" plugin in OpenDeck (Plugins), then run
+  install-linux.sh. It adds an "AD FINEM" profile to OpenDeck (and
+  "AD FINEM Forever" with both looks: the bottom-left key switches) with
+  the same 15 keys as on Windows. The keys follow OBS (active scene,
+  muted mic, hidden webcam, LIVE) once OBS also has Elgato's Stream Deck
+  plugin built for Linux (libStreamDeckPlugin.so). Outro = Ending (the
+  outro plays on the way to Ending).
 
 
 MAC
