@@ -221,16 +221,19 @@ $btnObs.Add_Click({
 $p = $pages[1]
 $p.Controls.Add((New-Label 'Which World of Warcraft do you stream?' 40 20 680 34 (HeadFont 16)))
 $p.Controls.Add((New-Label 'This picks the intro, outro, transitions, alert animation, colours and Stream Deck icons. You can switch later by running the setup again.' 40 62 680 40 $F_BODY $cMUTED))
-$script:edition = 'retail'
-try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower(); if ($e0 -in 'forever', 'both') { $script:edition = $e0 } } catch {}
+$script:edition = 'retail'; $script:bothMono = $false
+try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower()
+      if ($e0 -eq 'both-monogram') { $script:edition = 'both'; $script:bothMono = $true } elseif ($e0 -in 'forever', 'both', 'monogram') { $script:edition = $e0 } } catch {}
+# the value the installer gets: BOTH + "Retail in the Monogram look" = both-monogram
+function Get-Edition { if ($script:edition -eq 'both' -and $script:bothMono) { 'both-monogram' } else { $script:edition } }
 $cards = @{}
 function New-EditionCard($key, $title, $sub, $imgs, $x) {
   $c = New-Object System.Windows.Forms.Panel
-  $c.Location = New-Object System.Drawing.Point($x, 120); $c.Size = New-Object System.Drawing.Size(213, 236)
+  $c.Location = New-Object System.Drawing.Point($x, 120); $c.Size = New-Object System.Drawing.Size($script:cardW, 236)
   $c.BackColor = $cPANEL; $c.Cursor = 'Hand'; $c.Tag = $key
   $ctls = @($c)
   $n = @($imgs).Count; $sz = $(if ($n -gt 1) { 72 } else { 92 }); $gap = 8
-  $x0 = [int]((213 - ($n * $sz + ($n - 1) * $gap)) / 2)
+  $x0 = [int](($script:cardW - ($n * $sz + ($n - 1) * $gap)) / 2)
   for ($i = 0; $i -lt $n; $i++) {
     $pb = New-Object System.Windows.Forms.PictureBox
     $pb.Location = New-Object System.Drawing.Point(($x0 + $i * ($sz + $gap)), (22 + [int]((92 - $sz) / 2))); $pb.Size = New-Object System.Drawing.Size($sz, $sz)
@@ -238,21 +241,28 @@ function New-EditionCard($key, $title, $sub, $imgs, $x) {
     try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir @($imgs)[$i])) } catch {}
     $c.Controls.Add($pb); $ctls += $pb
   }
-  $l1 = New-Label $title 10 128 193 30 (HeadFont 13) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
-  $l2 = New-Label $sub 12 162 189 64 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
+  $l1 = New-Label $title 6 128 ($script:cardW - 12) 30 (HeadFont 12) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
+  $l2 = New-Label $sub 8 162 ($script:cardW - 16) 70 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
   $c.Controls.AddRange(@($l1, $l2)); $ctls += $l1, $l2
   $c.Add_Paint({ param($s, $e)
     $sel = ($s.Tag -eq $script:edition)
-    $col = if ($sel) { if ($s.Tag -eq 'retail') { $cCORAL } else { C 217 164 65 } } else { $cLINE }
+    $col = if ($sel) { if ($s.Tag -eq 'forever') { C 217 164 65 } else { $cCORAL } } else { $cLINE }
     $pen = New-Object System.Drawing.Pen($col, $(if ($sel) { 3 } else { 1 }))
     $e.Graphics.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose() })
-  $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() } }
+  $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() }; $ckBothMono.Enabled = ($script:edition -eq 'both') }
   foreach ($ctl in $ctls) { $ctl.Add_Click($pick) }
   $pages[1].Controls.Add($c); $cards[$key] = $c
 }
+$script:cardW = 160
+$ckBothMono = New-Object System.Windows.Forms.CheckBox
 New-EditionCard 'retail' 'RETAIL' 'Live servers. The coral AD FINEM look.' @('emblem.png') 40
-New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' @('forever-emblem.png') 263
-New-EditionCard 'both' 'BOTH' 'Two scene collections in OBS - switch with Scene Collection > AD FINEM / AD FINEM Forever.' @('emblem.png', 'forever-emblem.png') 486
+New-EditionCard 'monogram' 'MONOGRAM' 'Live servers. Flat coral, bold type, sharp motion.' @('monogram-emblem.png') 212
+New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' @('forever-emblem.png') 384
+New-EditionCard 'both' 'BOTH' 'Retail and WoW Forever as two scene collections in OBS.' @('emblem.png', 'forever-emblem.png') 556
+$ckBothMono.Text = 'Retail in the Monogram look'; $ckBothMono.Location = New-Object System.Drawing.Point(556, 364); $ckBothMono.Size = New-Object System.Drawing.Size(190, 24)
+$ckBothMono.ForeColor = $cMUTED; $ckBothMono.BackColor = $cBG; $ckBothMono.Font = $F_SMALL; $ckBothMono.Checked = $script:bothMono
+$ckBothMono.Enabled = ($script:edition -eq 'both'); $ckBothMono.Add_CheckedChanged({ $script:bothMono = $ckBothMono.Checked })
+$pages[1].Controls.Add($ckBothMono)
 
 # ------------------------------------------------------------------ page 3: camera + mic
 $p = $pages[2]
@@ -426,7 +436,7 @@ $deckTimer.Add_Tick({
   if (-not (Test-Path $SD_PLUGIN)) { return }
   $deckTimer.Stop()
   Start-Sleep -Milliseconds 800                     # let the Stream Deck app finish unpacking it
-  try { & (Join-Path $dest '_system\streamdeck\make-profile.ps1') -Dest $dest -Edition $script:edition | Out-Null } catch {}
+  try { & (Join-Path $dest '_system\streamdeck\make-profile.ps1') -Dest $dest -Edition (Get-Edition) | Out-Null } catch {}
   Update-Deck
   $deckLbl.Text = 'OBS plugin installed - your Stream Deck page now lights up with OBS. Click "Add Stream Deck page" (replace the old AD FINEM profile if asked).'
 })
@@ -468,7 +478,7 @@ function Start-Install {
   $f = @(); if ($ckNs.Checked) { $f += 'ns' }; if ($ckGate.Checked) { $f += 'gate' }; if ($ckComp.Checked) { $f += 'comp' }; if ($ckLimit.Checked) { $f += 'limit' }
   $fs = $f -join ','
   if ($fresh -or $fs -ne $origFilters) { $args2 += @('-MicFilters', $(if ($fs) { $fs } else { 'none' })) }
-  $args2 += @('-Edition', $script:edition)
+  $args2 += @('-Edition', (Get-Edition))
   $args2 += @('-Music', $(if ($ckMusic.Checked) { 'auto' } else { 'off' }))
   if ($script:twAuth) {   # the overlays read this file; the installer never overwrites it
     try {

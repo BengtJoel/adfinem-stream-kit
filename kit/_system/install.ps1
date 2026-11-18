@@ -6,7 +6,7 @@ param(
   [string]$Camera = $null,        # webcam name as Windows shows it; '' = leave as it is
   [string]$Mic = $null,           # 'default', a Windows audio endpoint id, or '' = leave as it is
   [string]$MicFilters = $null,    # e.g. 'ns,gate,comp,limit'; 'none' = no kit filters; '' = leave as it is
-  [string]$Edition = $null,       # 'retail', 'forever' (WoW Forever look) or 'both' (two OBS scene collections); '' = keep the one installed
+  [string]$Edition = $null,       # 'retail', 'monogram' (Retail, Monogram look), 'forever' (WoW Forever look), 'both' / 'both-monogram' (two OBS scene collections); '' = keep the one installed
   [string]$Music = 'auto'         # 'auto': stream music channel (VB-CABLE + Spotify + "AF Music" in OBS); 'off': leave audio alone
 )
 
@@ -246,29 +246,47 @@ if ((Resolve-Path $src).Path.TrimEnd('\') -ieq $dest.TrimEnd('\')) {
 $edFile = Join-Path $dest '_system\edition.txt'
 if (-not $Edition) { try { $Edition = (Get-Content $edFile -ErrorAction Stop | Select-Object -First 1).Trim() } catch {
   $Edition = 'retail'
-  if (-not $Quiet) { $a = Read-Host '    Which game do you stream? R = Retail, F = WoW Forever, B = both'; if ($a -match '^[Ff]') { $Edition = 'forever' } elseif ($a -match '^[Bb]') { $Edition = 'both' } }
+  if (-not $Quiet) { $a = Read-Host '    Which look? R = Retail, M = Retail (Monogram look), F = WoW Forever, B = both (Retail + Forever)'; if ($a -match '^[Ff]') { $Edition = 'forever' } elseif ($a -match '^[Mm]') { $Edition = 'monogram' } elseif ($a -match '^[Bb]') { $Edition = 'both' } }
 } }
-$Edition = $(if ($Edition -match '^forever$') { 'forever' } elseif ($Edition -match '^both$') { 'both' } else { 'retail' })
-function Set-Edition([string]$ed) {
-  $edSrc = Join-Path $src 'editions\forever'
-  if (-not (Test-Path $edSrc)) { $edSrc = Join-Path $dest 'editions\forever' }
-  if (-not (Test-Path $edSrc)) { return }
-  $bk = Join-Path $dest '_system\edition_backup'
+$Edition = $Edition.ToLower()
+$Edition = $(if ($Edition -in 'forever', 'monogram', 'both', 'both-monogram') { $Edition } else { 'retail' })
+# which edition folder is laid over the kit itself: Forever, Monogram, or nothing (Retail).
+# "both-monogram" = the AD FINEM collection in the Monogram look + the AD FINEM Forever collection.
+$script:Looks = @('forever', 'monogram')
+function Get-EdSrc([string]$name) {
+  $e = Join-Path $src "editions\$name"; if (-not (Test-Path $e)) { $e = Join-Path $dest "editions\$name" }
+  if (Test-Path $e) { $e } else { $null }
+}
+function Get-EdFiles([string]$edSrc) {
   foreach ($f in Get-ChildItem $edSrc -Recurse -File) {
     $rel = $f.FullName.Substring($edSrc.TrimEnd('\').Length).TrimStart('\')
     if ($rel -like 'streamdeck_icons\*' -or $rel -eq 'texts.json') { continue }   # Stream Deck icons + standard texts are used separately
-    $d = Join-Path $dest $rel; $b = Join-Path $bk $rel
-    $isForever = (Test-Path $d) -and (Get-Item $d).Length -eq $f.Length
-    if ($ed -eq 'forever') {
-      if ($isForever) { continue }
-      if (Test-Path $d) { New-Item -ItemType Directory -Force -Path (Split-Path $b) | Out-Null; Copy-Item $d $b -Force }   # keep the Retail file
-      New-Item -ItemType Directory -Force -Path (Split-Path $d) | Out-Null
-      Copy-Item $f.FullName $d -Force
-    } elseif ($isForever) {
-      $r = Join-Path $src $rel
-      if ((Test-Path $r) -and (Get-Item $r).Length -ne $f.Length) { Copy-Item $r $d -Force }
+    [pscustomobject]@{ File = $f; Rel = $rel }
+  }
+}
+function Set-Edition([string]$ed) {
+  $bk = Join-Path $dest '_system\edition_backup'
+  # 1) put the Retail files back wherever another look is installed (so looks never stack)
+  foreach ($name in $script:Looks) {
+    if ($name -eq $ed) { continue }
+    $edSrc = Get-EdSrc $name; if (-not $edSrc) { continue }
+    foreach ($e in Get-EdFiles $edSrc) {
+      $d = Join-Path $dest $e.Rel; $b = Join-Path $bk $e.Rel
+      if (-not ((Test-Path $d) -and (Get-Item $d).Length -eq $e.File.Length)) { continue }
+      $r = Join-Path $src $e.Rel
+      if ((Test-Path $r) -and (Get-Item $r).Length -ne $e.File.Length) { Copy-Item $r $d -Force }
       elseif (Test-Path $b) { Copy-Item $b $d -Force }
     }
+  }
+  # 2) lay the chosen look over the kit (the Retail file is kept in _system\edition_backup)
+  if ($ed -notin $script:Looks) { return }
+  $edSrc = Get-EdSrc $ed; if (-not $edSrc) { return }
+  foreach ($e in Get-EdFiles $edSrc) {
+    $d = Join-Path $dest $e.Rel; $b = Join-Path $bk $e.Rel
+    if ((Test-Path $d) -and (Get-Item $d).Length -eq $e.File.Length) { continue }
+    if ((Test-Path $d) -and -not (Test-Path $b)) { New-Item -ItemType Directory -Force -Path (Split-Path $b) | Out-Null; Copy-Item $d $b -Force }   # keep the Retail file
+    New-Item -ItemType Directory -Force -Path (Split-Path $d) | Out-Null
+    Copy-Item $e.File.FullName $d -Force
   }
 }
 # Retail + Forever side by side: "<overlay>-forever.html" copies that load the Forever colours, emblem and alert
@@ -278,7 +296,8 @@ function New-ForeverOverlays {
     $f = Join-Path $ov "$n.html"; if (-not (Test-Path $f)) { continue }
     $t = [IO.File]::ReadAllText($f, (New-Object Text.UTF8Encoding $false))
     $t = $t.Replace('<script src="../settings.js"></script>', '<script>window.AF_SETTINGS_SRC = "../settings-forever.js";</script><script src="../settings-forever.js"></script>')
-    $t = $t.Replace('<link rel="stylesheet" href="edition.css">', '<link rel="stylesheet" href="edition.css"><link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
+    # the Forever copies use only the Forever colours (the kit's own edition.css may be the Monogram look)
+    $t = $t.Replace('<link rel="stylesheet" href="edition.css">', '<link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
     $t = $t.Replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
     $t = $t.Replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
     $t = $t.Replace('"../videos/alert_1x1_alpha.webm"', '"../editions/forever/videos/alert_1x1_alpha.webm"')
@@ -303,8 +322,8 @@ function Set-EditionTexts([string]$ed, [string]$sf = $null) {
 try {
   # both: the kit itself stays Retail, the Forever collection uses its own copies (below);
   # (each with its own settings file)
-  Set-Edition $(if ($Edition -eq 'both') { 'retail' } else { $Edition })
-  if ($Edition -eq 'both') {
+  Set-Edition $(if ($Edition -eq 'both') { 'retail' } elseif ($Edition -eq 'both-monogram') { 'monogram' } else { $Edition })
+  if ($Edition -like 'both*') {
     # each collection gets its own settings: settings.js (Retail) and settings-forever.js (WoW Forever)
     $sfF = Join-Path $dest 'settings-forever.js'
     if (-not (Test-Path $sfF) -and (Test-Path (Join-Path $dest 'settings.js'))) { Copy-Item (Join-Path $dest 'settings.js') $sfF }
@@ -315,7 +334,7 @@ try {
   [IO.File]::WriteAllText((Join-Path $dest '_system\edition.js'), "window.AF_EDITION = `"$Edition`";`n", (New-Object Text.UTF8Encoding $false))
   New-Item -ItemType Directory -Force -Path (Split-Path $edFile) | Out-Null
   Set-Content -Path $edFile -Value $Edition -Encoding ASCII
-  Say "    Look: $(@{ forever = 'WoW Forever (gold + sapphire)'; both = 'Retail AND WoW Forever (two scene collections)'; retail = 'Retail' }[$Edition])" 'Green'
+  Say "    Look: $(@{ forever = 'WoW Forever (gold + sapphire)'; both = 'Retail AND WoW Forever (two scene collections)'; 'both-monogram' = 'Retail in the Monogram look AND WoW Forever (two scene collections)'; monogram = 'Retail - Monogram look'; retail = 'Retail' }[$Edition])" 'Green'
 } catch { Say "    (Could not switch the look: $($_.Exception.Message))" 'Yellow' }
 
 $oldEditor = Join-Path $dest 'Customize overlays.html'          # replaced by "Customize overlays.bat"
@@ -379,7 +398,7 @@ function Write-Collection([string]$fileName, [string]$json) {
 }
 Write-Collection 'AD_FINEM.json' $base
 $fTarget = Join-Path $scenesDir 'AD_FINEM_Forever.json'
-if ($Edition -eq 'both') {
+if ($Edition -like 'both*') {
   # second collection "AD FINEM Forever": same scenes, Forever videos, colours and webcam picture
   $fj = ([regex]'"name":\s*"AD FINEM"').Replace($base, '"name": "AD FINEM Forever"', 1)
   $fj = $fj.Replace("$kitPath/videos/", "$kitPath/editions/forever/videos/")

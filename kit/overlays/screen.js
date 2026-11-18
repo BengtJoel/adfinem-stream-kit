@@ -69,7 +69,9 @@
 
   // shrink the title so its widest line stays clear of the emblem (max ~760 px)
   const fit = () => {
-    const MAX = 760, BASE = 118;
+    // a look can set its own title size: --title-size / --title-max in edition.css
+    const cs = getComputedStyle(t);
+    const MAX = parseFloat(cs.getPropertyValue("--title-max")) || 760, BASE = parseFloat(cs.getPropertyValue("--title-size")) || 118;
     t.style.fontSize = BASE + "px";
     const widest = Math.max(...[...t.querySelectorAll(".in")].map(s => s.scrollWidth));
     if (widest > MAX) t.style.fontSize = Math.floor(BASE * MAX / widest) + "px";

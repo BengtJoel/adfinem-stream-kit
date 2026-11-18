@@ -219,10 +219,13 @@ def sync_placeholder(c):
 
 
 def pick_edition(dest):
-    """'retail', 'forever' or 'both': --retail / --forever / --both on the command line, else ask
-    (Enter keeps what is installed). Without a terminal: the one installed, else Retail."""
+    """'retail', 'monogram', 'forever', 'both' or 'both-monogram': --retail / --monogram / --forever / --both
+    (--both --monogram = both-monogram) on the command line, else ask (Enter keeps what is installed).
+    Without a terminal: the one installed, else Retail."""
     if "--both" in sys.argv:
-        return "both"
+        return "both-monogram" if "--monogram" in sys.argv else "both"
+    if "--monogram" in sys.argv:
+        return "monogram"
     if "--forever" in sys.argv:
         return "forever"
     if "--retail" in sys.argv:
@@ -231,21 +234,23 @@ def pick_edition(dest):
     try:
         with open(os.path.join(dest, "_system", "edition.txt"), encoding="utf-8") as f:
             v = f.read().strip().lower()
-            current = v if v in ("forever", "both") else "retail"
+            current = v if v in ("forever", "both", "monogram", "both-monogram") else "retail"
     except OSError:
         pass
     if sys.stdin.isatty():
-        names = {"retail": "Retail", "forever": "WoW Forever", "both": "both"}
-        print("\n    Which game do you stream?")
+        names = {"retail": "Retail", "monogram": "Monogram", "forever": "WoW Forever", "both": "both", "both-monogram": "both (Monogram)"}
+        print("\n    Which look?")
         print("      r = Retail")
+        print("      m = Retail in the Monogram look (flat coral, bold type)")
         print("      f = WoW Forever")
         print('      b = both (two scene collections in OBS: "AD FINEM" and "AD FINEM Forever")')
+        print("      n = both, with AD FINEM in the Monogram look")
         hint = f" [Enter = keep {names[current]}]" if current else " [Enter = Retail]"
         try:
-            a = input(f"    Your choice (r/f/b){hint}: ").strip().lower()
+            a = input(f"    Your choice (r/m/f/b/n){hint}: ").strip().lower()
         except EOFError:
             a = ""
-        return {"r": "retail", "f": "forever", "b": "both"}.get(a[:1], current or "retail")
+        return {"r": "retail", "m": "monogram", "f": "forever", "b": "both", "n": "both-monogram"}.get(a[:1], current or "retail")
     return current or "retail"
 
 
@@ -288,8 +293,9 @@ def make_forever_overlays(dest):
             t = f.read()
         t = t.replace('<script src="../settings.js"></script>',
                       '<script>window.AF_SETTINGS_SRC = "../settings-forever.js";</script><script src="../settings-forever.js"></script>')
+        # only the Forever colours (the kit's own edition.css may be the Monogram look)
         t = t.replace('<link rel="stylesheet" href="edition.css">',
-                      '<link rel="stylesheet" href="edition.css"><link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
+                      '<link rel="stylesheet" href="../editions/forever/overlays/edition.css">')
         t = t.replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
         t = t.replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
         t = t.replace('"../videos/alert_1x1_alpha.webm"', '"../editions/forever/videos/alert_1x1_alpha.webm"')
@@ -314,34 +320,47 @@ def apply_edition(dest):
     """Lays editions/forever over the kit (videos, colours, emblem) or puts the Retail files back.
     'both' keeps the kit Retail and makes Forever copies of the overlays for a second scene collection."""
     choice = pick_edition(dest)
-    ed = "retail" if choice == "both" else choice
-    ed_src = os.path.join(SRC, "editions", "forever")
-    if not os.path.isdir(ed_src):
-        ed_src = os.path.join(dest, "editions", "forever")
+    ed = {"both": "retail", "both-monogram": "monogram"}.get(choice, choice)
     bk = os.path.join(dest, "_system", "edition_backup")
-    for root, dirs, files in os.walk(ed_src):
-        rel_root = os.path.relpath(root, ed_src)
-        if rel_root.split(os.sep)[0] == "streamdeck_icons":
-            continue
-        for f in files:
-            if rel_root == "." and f == "texts.json":
+
+    def ed_files(name):
+        src = os.path.join(SRC, "editions", name)
+        if not os.path.isdir(src):
+            src = os.path.join(dest, "editions", name)
+        for root, dirs, files in os.walk(src):
+            rel_root = os.path.relpath(root, src)
+            if rel_root.split(os.sep)[0] == "streamdeck_icons":
                 continue
-            rel = os.path.normpath(os.path.join(rel_root, f))
-            fs, d, b = os.path.join(root, f), os.path.join(dest, rel), os.path.join(bk, rel)
-            is_forever = os.path.exists(d) and os.path.getsize(d) == os.path.getsize(fs)
-            if ed == "forever" and not is_forever:
-                if os.path.exists(d):
-                    os.makedirs(os.path.dirname(b), exist_ok=True)
-                    shutil.copy2(d, b)
-                os.makedirs(os.path.dirname(d), exist_ok=True)
-                shutil.copy2(fs, d)
-            elif ed == "retail" and is_forever:
+            for f in files:
+                if rel_root == "." and f == "texts.json":
+                    continue
+                rel = os.path.normpath(os.path.join(rel_root, f))
+                yield os.path.join(root, f), rel
+
+    # 1) put the Retail files back wherever another look is installed (looks never stack)
+    for name in ("forever", "monogram"):
+        if name == ed:
+            continue
+        for fs, rel in ed_files(name):
+            d, b = os.path.join(dest, rel), os.path.join(bk, rel)
+            if os.path.exists(d) and os.path.getsize(d) == os.path.getsize(fs):
                 r = os.path.join(SRC, rel)
                 if os.path.exists(r) and os.path.getsize(r) != os.path.getsize(fs):
                     shutil.copy2(r, d)
                 elif os.path.exists(b):
                     shutil.copy2(b, d)
-    if choice == "both":   # each collection gets its own settings: settings.js (Retail), settings-forever.js (Forever)
+    # 2) lay the chosen look over the kit (the Retail file is kept in _system/edition_backup)
+    if ed in ("forever", "monogram"):
+        for fs, rel in ed_files(ed):
+            d, b = os.path.join(dest, rel), os.path.join(bk, rel)
+            if os.path.exists(d) and os.path.getsize(d) == os.path.getsize(fs):
+                continue
+            if os.path.exists(d) and not os.path.exists(b):
+                os.makedirs(os.path.dirname(b), exist_ok=True)
+                shutil.copy2(d, b)
+            os.makedirs(os.path.dirname(d), exist_ok=True)
+            shutil.copy2(fs, d)
+    if choice.startswith("both"):   # each collection gets its own settings: settings.js (Retail), settings-forever.js (Forever)
         sf, sff = os.path.join(dest, "settings.js"), os.path.join(dest, "settings-forever.js")
         if not os.path.exists(sff) and os.path.exists(sf):
             shutil.copy2(sf, sff)
@@ -355,8 +374,9 @@ def apply_edition(dest):
     ed = choice
     with open(os.path.join(dest, "_system", "edition.txt"), "w", encoding="utf-8") as f:
         f.write(ed + "\n")
-    say("    Look: " + {"forever": "WoW Forever (gold + sapphire)", "both": "Retail AND WoW Forever (two scene collections)"}.get(ed, "Retail"), GREEN)
-    if ed != "both":
+    say("    Look: " + {"forever": "WoW Forever (gold + sapphire)", "both": "Retail AND WoW Forever (two scene collections)",
+                     "monogram": "Retail - Monogram look", "both-monogram": "Retail in the Monogram look AND WoW Forever (two scene collections)"}.get(ed, "Retail"), GREEN)
+    if not ed.startswith("both"):
         say("    (Want Retail and WoW Forever as two scene collections? Run:  bash install-linux.sh --both)", DIM)
     return ed
 
@@ -447,7 +467,7 @@ def main():
             targets = [OBS_CONFIGS[0]]
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     jobs = [("AD_FINEM.json", collection)]
-    if edition == "both":
+    if edition.startswith("both"):
         jobs.append(("AD_FINEM_Forever.json", forever_collection(collection, dest)))
     for cfg, (fname, coll) in [(c, j) for c in targets for j in jobs]:
         scenes = os.path.join(cfg, "basic", "scenes")
@@ -474,7 +494,7 @@ def main():
         with open(target, "w", encoding="utf-8") as f:
             json.dump(out, f, indent=2, ensure_ascii=False)
         say(f"    Written: {target}", GREEN)
-    if edition == "both":
+    if edition.startswith("both"):
         say('    In OBS: Scene Collection > "AD FINEM" (Retail) or "AD FINEM Forever".', GREEN)
     else:   # switched away from "both": put the Forever collection away
         for cfg in targets:
@@ -550,7 +570,7 @@ def main():
             say(f"    Could not make the Stream Deck page ({e}) - not a problem.", YELLOW)
 
     say(f"\n  {GREEN}Done!{END}")
-    if edition == "both":
+    if edition.startswith("both"):
         say('  1. Open OBS > Scene Collection > "AD FINEM" (Retail) or "AD FINEM Forever"')
     else:
         say("  1. Open OBS > Scene Collection > AD FINEM")

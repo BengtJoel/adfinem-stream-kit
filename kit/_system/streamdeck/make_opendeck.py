@@ -159,11 +159,13 @@ def make(dest, edition):
                 break
             time.sleep(0.1)
     icons = {"retail": os.path.join(dest, "_system", "streamdeck", "icons"),
-             "forever": os.path.join(dest, "editions", "forever", "streamdeck_icons")}
+             "forever": os.path.join(dest, "editions", "forever", "streamdeck_icons"),
+             "monogram": os.path.join(dest, "editions", "monogram", "streamdeck_icons")}
     # a .desktop launcher needs no quoting (the kit path has spaces); the installer writes it before this
     editor_cmd = "gtk-launch adfinem-customize-overlays" if shutil.which("gtk-launch") else f'python3 "{os.path.join(dest, "_system", "editor.py")}"'
-    if edition == "both":
-        pages = [("retail", "AD FINEM", "AD FINEM", "AD FINEM Forever"),
+    if edition.startswith("both"):
+        first = "monogram" if edition == "both-monogram" else "retail"
+        pages = [(first, "AD FINEM", "AD FINEM", "AD FINEM Forever"),
                  ("forever", "AD FINEM Forever", "AD FINEM Forever", "AD FINEM")]
     else:
         pages = [(edition, "AD FINEM", "AD FINEM", None)]
@@ -175,7 +177,7 @@ def make(dest, edition):
     try:
         for d in devs:
             for look, profile, collection, switch_to in pages:
-                other = icons["forever" if look == "retail" else "retail"]
+                other = icons["forever" if look != "forever" else pages[0][0]]
                 write_profile(cfg, d, profile, layout(collection, editor_cmd, switch_to), icons[look], other)
     finally:
         if was_running:

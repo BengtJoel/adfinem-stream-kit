@@ -2,7 +2,9 @@
 
    python build_sd.py templates            -> writes templates/<edition>-<mode>/ for every combination
 
-   edition: retail | forever | both   (both = two pages: Retail collection and "AD FINEM Forever")
+   edition: retail | monogram | forever | both | both-monogram
+            (both = two pages: the AD FINEM collection and "AD FINEM Forever";
+             both-monogram = the same, with the Monogram icons on the AD FINEM page)
    mode:    obs  - Elgato's "OBS Studio" plugin: keys show what OBS is doing (two icon states)
             keys - plain key commands (no plugin needed, one icon state)
 
@@ -15,7 +17,8 @@ import json, os, shutil, sys, uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICONS = {"retail": os.path.join(HERE, "icons"),
-         "forever": os.path.join(HERE, "..", "..", "editions", "forever", "streamdeck_icons")}
+         "forever": os.path.join(HERE, "..", "..", "editions", "forever", "streamdeck_icons"),
+         "monogram": os.path.join(HERE, "..", "..", "editions", "monogram", "streamdeck_icons")}
 OUT = os.path.join(HERE, "templates")
 PROFILE_UUID = "A7D0F1E2-5C3B-4E6A-9F80-AD0F1E2E5C3B"       # same as before: importing again updates the profile
 NS = uuid.UUID("ad0f1e2e-5c3b-4e6a-9f80-a7d0f1e25c3b")
@@ -127,15 +130,16 @@ def build(edition, mode):
     out = os.path.join(OUT, f"{edition}-{mode}")
     shutil.rmtree(out, ignore_errors=True)
     root = os.path.join(out, PROFILE_UUID + ".sdProfile")
-    if edition == "both":
-        pages = [("retail", "AD FINEM", "next"), ("forever", "AD FINEM Forever", "previous")]
+    if edition in ("both", "both-monogram"):
+        first = "monogram" if edition == "both-monogram" else "retail"
+        pages = [(first, "AD FINEM", "next"), ("forever", "AD FINEM Forever", "previous")]
     else:
         pages = [(edition, "AD FINEM", None)]
     ids = []
     for look, coll, nav in pages:
         pid = str(uuid.uuid5(NS, f"{edition}-{mode}-{look}"))
         ids.append(pid)
-        other = ICONS["forever" if look == "retail" else "retail"]
+        other = ICONS["forever" if look != "forever" else pages[0][0]]
         write_page(os.path.join(root, "Profiles", page_folder(pid)), ICONS[look], layout(mode, coll, nav), other)
     with open(os.path.join(root, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump({"Device": {"Model": "20GAA9902", "UUID": ""}, "Name": "AD FINEM",
@@ -146,6 +150,6 @@ def build(edition, mode):
 if __name__ == "__main__":
     if sys.argv[1:2] != ["templates"]:
         sys.exit(__doc__)
-    for ed in ("retail", "forever", "both"):
+    for ed in ("retail", "monogram", "forever", "both", "both-monogram"):
         for mode in ("obs", "keys"):
             print("written", build(ed, mode))

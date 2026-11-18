@@ -6,10 +6,13 @@ INSTALL (2 minutes)
   2. Pick your webcam and microphone, and which mic clean-up to use:
      noise suppression, noise gate, compressor and limiter (all on by
      default). The setup puts everything into OBS for you.
-  3. Pick your game: Retail (the coral look), WoW Forever (gold and
+  3. Pick your look: Retail (the coral look), Monogram (Retail with a
+     flat coral look, bold condensed type and its own intro, outro,
+     stinger, alert and Stream Deck icons), WoW Forever (gold and
      sapphire, with the Forever emblem, intro, outro and stinger), or
      Both - then OBS gets two scene collections, "AD FINEM" and
-     "AD FINEM Forever"; switch with the Scene Collection menu.
+     "AD FINEM Forever"; switch with the Scene Collection menu. Tick
+     "Retail in the Monogram look" under Both to get Monogram + Forever.
      With Both, Customize overlays has a Retail / WoW Forever switch at
      the top: each look has its own texts, pill and sponsors.
      Change it any time by running the setup again.
@@ -138,10 +141,10 @@ STREAMLABS DESKTOP
 LINUX
   Needs OBS Studio (native, Flatpak or Snap) and Python 3.
   Install:   open a terminal in the kit folder and run   bash install-linux.sh
-             It asks: Retail, WoW Forever or both. "Both" adds a second
-             scene collection, "AD FINEM Forever". Run it again any time
-             to change (or skip the question with --retail, --forever
-             or --both).
+             It asks: Retail, Monogram, WoW Forever or both. "Both" adds a
+             second scene collection, "AD FINEM Forever". Run it again any
+             time to change (or skip the question with --retail, --monogram,
+             --forever, --both, or --both --monogram).
   Edit text: "AD FINEM - Customize overlays" in your app menu,
              or   bash customize-overlays-linux.sh
   Remove:    bash uninstall-linux.sh
@@ -164,7 +167,7 @@ MAC
              The first time macOS blocks it: right-click > Open > Open.
              If macOS offers to install "Command Line Tools", click Install
              and run INSTALL-mac.command again when it's done.
-             It asks Retail, WoW Forever or both.
+             It asks Retail, Monogram, WoW Forever or both.
   Edit text: "AD FINEM - Customize overlays" on your Desktop
              (or "Customize overlays-mac.command" in the kit folder).
              Connect Twitch there, on the Alerts tab.

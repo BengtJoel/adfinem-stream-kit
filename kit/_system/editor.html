@@ -263,7 +263,8 @@ function withDefaults(o) {
 }
 withDefaults(window.AF_SETTINGS); withDefaults(window.AF_SETTINGS_FOREVER);
 // Retail + WoW Forever installed side by side: each look has its own settings file
-const BOTH = window.AF_EDITION === "both" && !!window.AF_SETTINGS_FOREVER;
+const BOTH = /^both/.test(window.AF_EDITION || "") && !!window.AF_SETTINGS_FOREVER;
+if (/monogram/.test(window.AF_EDITION || "")) document.querySelector('#looks [data-look="retail"]').textContent = "Monogram";
 const LOOKS = { retail: { file: "settings", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS || {})) } };
 if (BOTH) LOOKS.forever = { file: "settings-forever", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS_FOREVER)) };
 for (const k in LOOKS) LOOKS[k].cur = JSON.parse(JSON.stringify(LOOKS[k].orig));
