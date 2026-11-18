@@ -13,7 +13,7 @@
   #mo .hud{font-weight:700;font-stretch:125%;font-size:15px;letter-spacing:.38em;color:#5B6273;white-space:nowrap}
   #mo .micro{font-weight:700;font-stretch:125%;font-size:12px;letter-spacing:.32em;color:#3E4556;white-space:nowrap}
   #mo .corner{width:44px;height:44px;border-color:#3A4152;border-style:solid;border-width:0}
-  #mo .dg{display:block;height:96px;line-height:96px}
+  #mo .dg{display:block;height:64px;line-height:64px}
 `;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
   const esc = s => String(s == null ? "" : s);
@@ -38,22 +38,23 @@
   <div id="rail" class="a" style="left:1830px;top:250px;width:18px;height:580px;overflow:hidden"><svg id="rsv" width="18" height="2400"></svg></div>
   <div id="railL" class="a micro" style="left:1878px;top:250px;transform-origin:0 0;transform:rotate(90deg)">AD-FINEM.EU — TO THE END</div>
   <div id="ru" class="a" style="left:96px;top:948px;width:1080px;height:18px;overflow:hidden"><svg id="rusv" width="2600" height="18"><line x1="0" y1="17" x2="2600" y2="17" stroke="#5B6273" stroke-width="2"/></svg></div>
-  <div id="h1" class="a hud" style="left:96px;top:988px"></div>
-  <div id="h2" class="a hud" style="left:1176px;top:988px;transform:translateX(-100%)">TO THE END</div>
-  <div id="kick" class="a hud" style="left:96px;top:96px;color:#E8785A"><span style="display:inline-block;width:34px;height:3px;background:#E8785A;vertical-align:5px;margin-right:18px"></span><span id="kickT"></span></div>
+  <div id="tc" class="a micro" style="left:96px;top:912px"></div>
+  <div id="h1" class="a hud" style="left:96px;top:988px">TO THE END</div>
+  <div id="h2" class="a hud" style="left:1176px;top:988px;transform:translateX(-100%)"></div>
+  <div id="kick" class="a hud" style="right:96px;top:74px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#E8785A;margin-right:14px;vertical-align:1px"></span><span id="kickT"></span></div>
   <div id="left" class="a" style="left:96px;bottom:200px;width:820px"></div>
-  <div id="lock" class="a" style="left:1090px;top:${hasCd ? 205 : 240}px;width:720px;text-align:center">
+  <div id="lock" class="a" style="left:1090px;top:${hasCd ? 150 : 205}px;width:720px;text-align:center">
    <div id="eb" style="position:relative;margin:0 auto;width:290px;height:290px">
     <svg id="dash" class="a" width="290" height="290" style="left:0;top:0;overflow:visible"></svg>
     <div id="rp" class="a" style="left:0;top:0;width:290px;height:290px;border-radius:50%;border:3px solid #E8785A"></div>
     <div id="rev" class="a" style="left:0;top:0;width:290px;height:290px"><div class="em" style="width:100%;height:100%;background:#E8785A;position:relative;overflow:hidden">
      <div id="sh" style="position:absolute;top:-20%;width:40%;height:140%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,238,228,.9),rgba(255,255,255,0));transform:skewX(-20deg)"></div></div></div>
    </div>
-   <div id="wm" style="display:flex;justify-content:center;overflow:hidden;font-weight:900;font-stretch:62%;font-size:156px;height:150px;line-height:150px;margin-top:46px"></div>
-   <div id="bar" style="height:3px;background:#E8785A;margin:24px auto 0;width:0"></div>
-   <div id="tag" style="margin-top:24px;font-weight:700;font-stretch:125%;font-size:28px;color:#E8785A;white-space:nowrap"></div>
-   <div id="cdw" style="margin-top:34px;height:96px;overflow:hidden;font-weight:900;font-stretch:62%;font-size:96px;letter-spacing:.03em;font-variant-numeric:tabular-nums"><div id="cdi"><span id="cdA" class="dg"></span><span id="cdB" class="dg"></span></div></div>
-   <div id="cdl" class="micro" style="margin-top:12px;letter-spacing:.5em;color:#5B6273"></div>
+   <div id="wm" style="display:flex;justify-content:center;overflow:hidden;font-weight:900;font-stretch:62%;font-size:156px;height:150px;line-height:150px;margin-top:50px"></div>
+   <div id="bar" style="height:3px;background:#E8785A;margin:26px auto 0;width:0"></div>
+   <div id="tag" style="margin-top:26px;font-weight:700;font-stretch:125%;font-size:22px;color:#E8785A;white-space:nowrap"></div>
+   <div id="cdw" style="margin-top:42px;height:64px;overflow:hidden;font-weight:900;font-stretch:62%;font-size:64px;letter-spacing:.04em;font-variant-numeric:tabular-nums"><div id="cdi"><span id="cdA" class="dg"></span><span id="cdB" class="dg"></span></div></div>
+   <div id="cdl" class="micro" style="margin-top:10px;letter-spacing:.5em;color:#5B6273"></div>
   </div>
   <div id="blk" class="a" style="inset:0;background:#07090D"></div>
   <div id="cut" class="a" style="inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-stretch:62%;font-size:560px;line-height:1"></div>
@@ -72,7 +73,7 @@
   $("cdl").textContent = hasCd ? esc(C.countdownLabel) : "";
   if (!hasCd) { S("cdw", "display", "none"); S("cdl", "display", "none"); }
   const socials = (C.socials || []).map(esc);
-  $("h1").textContent = socials.join("   ·   ") || "AD-FINEM.EU";
+  $("h2").textContent = socials.join("   ·   ") || "AD-FINEM.EU";
   const left = [];
   if (C.callout) left.push(`<div style="border-left:3px solid #E8785A;background:rgba(16,20,28,.86);padding:16px 22px;margin-bottom:22px;display:inline-block">
      <div style="font-weight:700;font-stretch:125%;font-size:14px;letter-spacing:.42em;color:#E8785A;margin-bottom:10px">${esc(C.callout.label)}</div>
@@ -156,13 +157,15 @@
     if (end) { const sec = Math.max(0, Math.round((end - Date.now()) / 1000));
       if (sec !== lastSec) { $("cdA").textContent = lastSec === null ? fmt(sec) : fmt(lastSec); $("cdB").textContent = fmt(sec); rollAt = lastSec === null ? -9 : t; lastSec = sec;
         $("cdw").style.color = sec === 0 ? "#E8785A" : "#F2F2F0"; }
-      S("cdi", "transform", `translateY(${-96 * (rollAt < 0 ? 1 : eo(cl((t - rollAt) / .28)))}px)`);
+      S("cdi", "transform", `translateY(${-64 * (rollAt < 0 ? 1 : eo(cl((t - rollAt) / .28)))}px)`);
       const ci = eo(P(t, W0 + .9, W0 + 1.5)); S("cdw", "opacity", ci); S("cdl", "opacity", ci); S("cdw", "transform", `translateY(${(1 - ci) * 24}px)`); }
     // HUD + left copy
     const hi = eo(P(t, H0, H0 + .9));
     S("ru", "clipPath", `inset(0 ${100 - hi * 100}% 0 0)`); S("rusv", "transform", `translateX(${-((t * 60) % 150)}px)`);
     S("rail", "clipPath", `inset(0 0 ${100 - hi * 100}% 0)`); S("rsv", "transform", `translateY(${-((t * 40) % 100)}px)`);
-    ["h1", "h2", "railL"].forEach(id => S(id, "opacity", hi));
+    ["h1", "h2", "tc", "railL"].forEach(id => S(id, "opacity", hi));
+    { const tt = Math.max(0, t - O), ff = fr % 30;
+      $("tc").textContent = `TC ${String(Math.floor(tt / 3600) % 24).padStart(2, "0")}:${String(Math.floor(tt / 60) % 60).padStart(2, "0")}:${String(Math.floor(tt) % 60).padStart(2, "0")}:${String(ff).padStart(2, "0")}  ·  1920×1080  ·  30P`; }
     S("kick", "clipPath", `inset(0 ${100 - eo(P(t, H0, H0 + .8)) * 100}% 0 0)`);
     const li = eo(P(t, W0 + 1.1, W0 + 1.9)); S("left", "opacity", li); S("left", "transform", `translateY(${(1 - li) * 18}px)`);
     ["c1", "c2", "c3", "c4"].forEach((id, i) => { const p = e5(P(t, H0 + i * .06, H0 + .6 + i * .06)); S(id, "opacity", p); S(id, "transform", `scale(${1.6 - .6 * p})`); });
