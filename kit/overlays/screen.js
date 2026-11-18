@@ -18,6 +18,13 @@
   if (q.get("minutes")) C.minutes = parseFloat(q.get("minutes"));
   if (q.get("target")) C.target = q.get("target");
 
+  // the Monogram look has its own animated scene (editions/monogram/overlays/mono-screen.js)
+  if (getComputedStyle(document.documentElement).getPropertyValue("--edition").trim() === "monogram") {
+    window.AF_MONO = C;
+    const m = document.createElement("script"); m.src = "mono-screen.js"; document.body.appendChild(m);
+    return;
+  }
+
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const root = el("main", "screen");
   let d = 0.3; const step = () => (d += 0.22).toFixed(2) + "s";
