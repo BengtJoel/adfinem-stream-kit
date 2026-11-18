@@ -40,7 +40,7 @@
   const A = AF_GET("alerts") || {};
   const MONO = getComputedStyle(document.documentElement).getPropertyValue("--edition").trim() === "monogram";
   if (MONO) {
-    const m = document.createElement("script"); m.src = "mono-alert.js"; document.head.appendChild(m);
+    const m = document.createElement("script"); m.src = (window.AF_LOOK_DIR || "") + "mono-alert.js"; document.head.appendChild(m);
   }
   const PREVIEW = /[#&]s=/.test(location.hash);           // shown inside the editor
   const mode = A.mode || "twitch";

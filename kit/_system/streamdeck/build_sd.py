@@ -2,9 +2,10 @@
 
    python build_sd.py templates            -> writes templates/<edition>-<mode>/ for every combination
 
-   edition: retail | monogram | forever | both | both-monogram
-            (both = two pages: the AD FINEM collection and "AD FINEM Forever";
-             both-monogram = the same, with the Monogram icons on the AD FINEM page)
+   edition: one or more looks joined with "+" (retail, monogram, forever), e.g. retail+monogram+forever.
+            One page per look: the first look is the "AD FINEM" collection, the others
+            "AD FINEM Monogram" / "AD FINEM Forever". The bottom-left key flips to the next look's page
+            (a middle page also gets a "previous" key, as the Stream Deck app requires).
    mode:    obs  - Elgato's "OBS Studio" plugin: keys show what OBS is doing (two icon states)
             keys - plain key commands (no plugin needed, one icon state)
 
@@ -67,7 +68,7 @@ def hk(name, img, fn, **m): return action(name, HK, "Activate a Key Command", ho
 
 
 def layout(mode, collection, nav):
-    """nav: None (single page: 'back' key) or 'next' / 'previous' (both-mode: switch look)"""
+    """nav: set of page moves this page needs: {} (single page), {'next'}, {'previous'} or both"""
     a = {}
     if mode == "obs":
         for key, scene, img in SCENES:
@@ -101,19 +102,23 @@ def layout(mode, collection, nav):
     a["4,0"] = hk("Scene: Ending + outro", "scene_outro.png", 17)        # plays the outro, then Ending
     a["1,2"] = action("Customize overlays", "com.elgato.streamdeck.system.open", "Open",
                       {"openInBrowser": False, "path": "__EDITOR__"}, "editor.png")
-    if nav is None:
+    if not nav:
         a["0,2"] = hk("Screenshot", "screenshot.png", 23)
-    else:
-        a["0,2"] = action("Switch look (Retail / WoW Forever)", "com.elgato.streamdeck.page." + nav, "Pages", {}, "page_other.png")
+    else:   # bottom-left: next look (or back, on the last page); a middle page gives up Customize for "previous"
+        a["0,2"] = action("Switch look", "com.elgato.streamdeck.page." + ("next" if "next" in nav else "previous"), "Pages", {},
+                          "page_next.png" if "next" in nav else "page_prev.png")
+        if "next" in nav and "previous" in nav:
+            a["1,2"] = action("Previous look", "com.elgato.streamdeck.page.previous", "Pages", {}, "page_prev.png")
     return a
 
 
-def write_page(folder, icons, actions, other_icons=None):
+def write_page(folder, icons, actions, next_icons=None, prev_icons=None):
     img_dir = os.path.join(folder, "Images"); os.makedirs(img_dir, exist_ok=True)
     for act in actions.values():
         for st in act["States"]:
             n = st["Image"].split("/")[1]
-            src = os.path.join(other_icons, "page.png") if n == "page_other.png" else os.path.join(icons, n)
+            src = (os.path.join(next_icons, "page.png") if n == "page_next.png" else
+                   os.path.join(prev_icons, "page.png") if n == "page_prev.png" else os.path.join(icons, n))
             shutil.copy(src, os.path.join(img_dir, n))
     m = {"Controllers": [{"Actions": actions, "Type": "Keypad"}], "Icon": "", "Name": "AD FINEM"}
     with open(os.path.join(folder, "manifest.json"), "w", encoding="utf-8") as f:
@@ -130,17 +135,16 @@ def build(edition, mode):
     out = os.path.join(OUT, f"{edition}-{mode}")
     shutil.rmtree(out, ignore_errors=True)
     root = os.path.join(out, PROFILE_UUID + ".sdProfile")
-    if edition in ("both", "both-monogram"):
-        first = "monogram" if edition == "both-monogram" else "retail"
-        pages = [(first, "AD FINEM", "next"), ("forever", "AD FINEM Forever", "previous")]
-    else:
-        pages = [(edition, "AD FINEM", None)]
+    looks = edition.split("+")
     ids = []
-    for look, coll, nav in pages:
+    for i, look in enumerate(looks):
+        coll = "AD FINEM" if i == 0 else {"monogram": "AD FINEM Monogram", "forever": "AD FINEM Forever"}[look]
+        nav = set() if len(looks) == 1 else ({"next"} if i == 0 else {"previous"} if i == len(looks) - 1 else {"next", "previous"})
         pid = str(uuid.uuid5(NS, f"{edition}-{mode}-{look}"))
         ids.append(pid)
-        other = ICONS["forever" if look != "forever" else pages[0][0]]
-        write_page(os.path.join(root, "Profiles", page_folder(pid)), ICONS[look], layout(mode, coll, nav), other)
+        nxt = ICONS[looks[i + 1]] if i + 1 < len(looks) else None
+        prv = ICONS[looks[i - 1]] if i > 0 else None
+        write_page(os.path.join(root, "Profiles", page_folder(pid)), ICONS[look], layout(mode, coll, nav), nxt, prv)
     with open(os.path.join(root, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump({"Device": {"Model": "20GAA9902", "UUID": ""}, "Name": "AD FINEM",
                    "Pages": {"Current": ids[0], "Default": ids[0], "Pages": ids}, "Version": "2.0"}, f)
@@ -150,6 +154,15 @@ def build(edition, mode):
 if __name__ == "__main__":
     if sys.argv[1:2] != ["templates"]:
         sys.exit(__doc__)
-    for ed in ("retail", "monogram", "forever", "both", "both-monogram"):
+    import itertools
+    LOOKS = ("retail", "monogram", "forever")
+    combos = ["+".join(c) for n in (1, 2, 3) for c in itertools.combinations(LOOKS, n)]
+    keep = ("retail", "forever")   # the single Retail / Forever templates are unchanged - don't rewrite them
+    for old in ("both", "both-monogram"):
+        for mode in ("obs", "keys"):
+            shutil.rmtree(os.path.join(OUT, f"{old}-{mode}"), ignore_errors=True)
+    for ed in combos:
+        if ed in keep and "--all" not in sys.argv:
+            continue
         for mode in ("obs", "keys"):
             print("written", build(ed, mode))

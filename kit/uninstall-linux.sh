@@ -3,7 +3,7 @@
 # Your kit folder and settings are kept. Run:  bash uninstall-linux.sh
 removed=0
 for d in "${XDG_CONFIG_HOME:-$HOME/.config}/obs-studio" "$HOME/.var/app/com.obsproject.Studio/config/obs-studio" "$HOME/snap/obs-studio/current/.config/obs-studio"; do
-  for f in "$d/basic/scenes/AD_FINEM.json" "$d/basic/scenes/AD_FINEM_Forever.json"; do
+  for f in "$d/basic/scenes/AD_FINEM.json" "$d/basic/scenes/AD_FINEM_Forever.json" "$d/basic/scenes/AD_FINEM_Monogram.json"; do
     if [ -f "$f" ]; then mv "$f" "$f.removed" && echo "Removed: $f (kept as .removed)"; removed=1; fi
   done
 done

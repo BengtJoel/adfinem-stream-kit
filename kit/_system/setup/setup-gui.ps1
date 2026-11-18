@@ -219,50 +219,61 @@ $btnObs.Add_Click({
 
 # ------------------------------------------------------------------ page 2: which WoW
 $p = $pages[1]
-$p.Controls.Add((New-Label 'Which World of Warcraft do you stream?' 40 20 680 34 (HeadFont 16)))
-$p.Controls.Add((New-Label 'This picks the intro, outro, transitions, alert animation, colours and Stream Deck icons. You can switch later by running the setup again.' 40 62 680 40 $F_BODY $cMUTED))
-$script:edition = 'retail'; $script:bothMono = $false
+$p.Controls.Add((New-Label 'Which looks do you want?' 40 20 680 34 (HeadFont 16)))
+$p.Controls.Add((New-Label 'Pick one or more. Each look gets its own scene collection in OBS, with its own intro, outro, transitions, alert, colours and Stream Deck page. You can change this later by running the setup again.' 40 58 680 46 $F_BODY $cMUTED))
+# picked looks (fixed order); the installer gets them joined with '+', e.g. retail+monogram+forever
+$script:picked = @{ retail = $true; monogram = $false; forever = $false }
 try { $e0 = (Get-Content (Join-Path $dest '_system\edition.txt') -ErrorAction Stop | Select-Object -First 1).Trim().ToLower()
-      if ($e0 -eq 'both-monogram') { $script:edition = 'both'; $script:bothMono = $true } elseif ($e0 -in 'forever', 'both', 'monogram') { $script:edition = $e0 } } catch {}
-# the value the installer gets: BOTH + "Retail in the Monogram look" = both-monogram
-function Get-Edition { if ($script:edition -eq 'both' -and $script:bothMono) { 'both-monogram' } else { $script:edition } }
+      if ($e0 -eq 'both') { $e0 = 'retail+forever' } elseif ($e0 -eq 'both-monogram') { $e0 = 'monogram+forever' }
+      $set = @($e0 -split '[+, ]+' | Where-Object { $_ -in 'retail', 'monogram', 'forever' })
+      if ($set.Count) { foreach ($k in @($script:picked.Keys)) { $script:picked[$k] = ($k -in $set) } } } catch {}
+function Get-Looks { @('retail', 'monogram', 'forever' | Where-Object { $script:picked[$_] }) }
+function Get-Edition { (Get-Looks) -join '+' }
 $cards = @{}
-function New-EditionCard($key, $title, $sub, $imgs, $x) {
+function New-EditionCard($key, $title, $sub, $img, $x) {
   $c = New-Object System.Windows.Forms.Panel
-  $c.Location = New-Object System.Drawing.Point($x, 120); $c.Size = New-Object System.Drawing.Size($script:cardW, 236)
+  $c.Location = New-Object System.Drawing.Point($x, 116); $c.Size = New-Object System.Drawing.Size(213, 236)
   $c.BackColor = $cPANEL; $c.Cursor = 'Hand'; $c.Tag = $key
-  $ctls = @($c)
-  $n = @($imgs).Count; $sz = $(if ($n -gt 1) { 72 } else { 92 }); $gap = 8
-  $x0 = [int](($script:cardW - ($n * $sz + ($n - 1) * $gap)) / 2)
-  for ($i = 0; $i -lt $n; $i++) {
-    $pb = New-Object System.Windows.Forms.PictureBox
-    $pb.Location = New-Object System.Drawing.Point(($x0 + $i * ($sz + $gap)), (22 + [int]((92 - $sz) / 2))); $pb.Size = New-Object System.Drawing.Size($sz, $sz)
-    $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
-    try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir @($imgs)[$i])) } catch {}
-    $c.Controls.Add($pb); $ctls += $pb
-  }
-  $l1 = New-Label $title 6 128 ($script:cardW - 12) 30 (HeadFont 12) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
-  $l2 = New-Label $sub 8 162 ($script:cardW - 16) 70 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
-  $c.Controls.AddRange(@($l1, $l2)); $ctls += $l1, $l2
+  $pb = New-Object System.Windows.Forms.PictureBox
+  $pb.Location = New-Object System.Drawing.Point(60, 22); $pb.Size = New-Object System.Drawing.Size(92, 92)
+  $pb.SizeMode = 'Zoom'; $pb.BackColor = $cPANEL; $pb.Cursor = 'Hand'; $pb.Tag = $key
+  try { $pb.Image = [System.Drawing.Image]::FromFile((Join-Path $setupDir $img)) } catch {}
+  $l1 = New-Label $title 10 128 193 30 (HeadFont 13) $cTEXT; $l1.BackColor = $cPANEL; $l1.Cursor = 'Hand'; $l1.Tag = $key; $l1.TextAlign = 'MiddleCenter'
+  $l2 = New-Label $sub 12 162 189 64 $F_SMALL $cMUTED; $l2.BackColor = $cPANEL; $l2.Cursor = 'Hand'; $l2.Tag = $key; $l2.TextAlign = 'TopCenter'
+  $c.Controls.AddRange(@($pb, $l1, $l2))
   $c.Add_Paint({ param($s, $e)
-    $sel = ($s.Tag -eq $script:edition)
+    $sel = $script:picked[$s.Tag]
     $col = if ($sel) { if ($s.Tag -eq 'forever') { C 217 164 65 } else { $cCORAL } } else { $cLINE }
+    $g = $e.Graphics; $g.SmoothingMode = 'AntiAlias'
     $pen = New-Object System.Drawing.Pen($col, $(if ($sel) { 3 } else { 1 }))
-    $e.Graphics.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose() })
-  $pick = { $script:edition = $this.Tag; foreach ($k in $cards.Keys) { $cards[$k].Invalidate() }; $ckBothMono.Enabled = ($script:edition -eq 'both') }
-  foreach ($ctl in $ctls) { $ctl.Add_Click($pick) }
+    $g.DrawRectangle($pen, 1, 1, $s.Width - 3, $s.Height - 3); $pen.Dispose()
+    # tick box top-right
+    $bx = $s.Width - 34; $by = 12
+    $box = New-Object System.Drawing.Pen($col, 2); $g.DrawRectangle($box, $bx, $by, 20, 20); $box.Dispose()
+    if ($sel) {
+      $br = New-Object System.Drawing.SolidBrush($col); $g.FillRectangle($br, $bx, $by, 21, 21); $br.Dispose()
+      $tk = New-Object System.Drawing.Pen($cBG, 3); $g.DrawLines($tk, [System.Drawing.Point[]]@((New-Object System.Drawing.Point(($bx + 5), ($by + 11))), (New-Object System.Drawing.Point(($bx + 9), ($by + 15))), (New-Object System.Drawing.Point(($bx + 16), ($by + 6))))); $tk.Dispose()
+    } })
+  $pick = {
+    $k = $this.Tag
+    if ($script:picked[$k] -and @(Get-Looks).Count -eq 1) { return }   # at least one look
+    $script:picked[$k] = -not $script:picked[$k]
+    foreach ($q in $cards.Keys) { $cards[$q].Invalidate() }
+    $lblLooks.Text = Get-LooksText
+  }
+  foreach ($ctl in @($c, $pb, $l1, $l2)) { $ctl.Add_Click($pick) }
   $pages[1].Controls.Add($c); $cards[$key] = $c
 }
-$script:cardW = 160
-$ckBothMono = New-Object System.Windows.Forms.CheckBox
-New-EditionCard 'retail' 'RETAIL' 'Live servers. The coral AD FINEM look.' @('emblem.png') 40
-New-EditionCard 'monogram' 'MONOGRAM' 'Live servers. Flat coral, bold type, sharp motion.' @('monogram-emblem.png') 212
-New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' @('forever-emblem.png') 384
-New-EditionCard 'both' 'BOTH' 'Retail and WoW Forever as two scene collections in OBS.' @('emblem.png', 'forever-emblem.png') 556
-$ckBothMono.Text = 'Retail in the Monogram look'; $ckBothMono.Location = New-Object System.Drawing.Point(556, 364); $ckBothMono.Size = New-Object System.Drawing.Size(190, 24)
-$ckBothMono.ForeColor = $cMUTED; $ckBothMono.BackColor = $cBG; $ckBothMono.Font = $F_SMALL; $ckBothMono.Checked = $script:bothMono
-$ckBothMono.Enabled = ($script:edition -eq 'both'); $ckBothMono.Add_CheckedChanged({ $script:bothMono = $ckBothMono.Checked })
-$pages[1].Controls.Add($ckBothMono)
+function Get-LooksText {
+  $l = @(Get-Looks); $coll = @{ monogram = '"AD FINEM Monogram"'; forever = '"AD FINEM Forever"' }
+  if ($l.Count -eq 1) { return 'One scene collection in OBS: "AD FINEM".' }
+  "$($l.Count) scene collections in OBS: " + (@('"AD FINEM"') + @($l | Select-Object -Skip 1 | ForEach-Object { $coll[$_] }) -join ', ') + '.'
+}
+New-EditionCard 'retail' 'RETAIL' 'Live servers. The coral AD FINEM look.' 'emblem.png' 40
+New-EditionCard 'monogram' 'MONOGRAM' 'Live servers. Flat coral, bold type, sharp motion.' 'monogram-emblem.png' 263
+New-EditionCard 'forever' 'WOW FOREVER' 'Gold and sapphire, with the Forever emblem, intro and outro.' 'forever-emblem.png' 486
+$lblLooks = New-Label (Get-LooksText) 40 364 680 24 $F_SMALL $cMUTED
+$pages[1].Controls.Add($lblLooks)
 
 # ------------------------------------------------------------------ page 3: camera + mic
 $p = $pages[2]
@@ -525,7 +536,7 @@ $timer.Add_Tick({
     if ($ok) {
       $script:exitCode = 0
       $bar.Value = 6
-      $lines = @($(if ($script:edition -eq 'both') { "Open OBS and choose Scene Collection > AD FINEM (Retail) or AD FINEM Forever." } else { "Open OBS and choose Scene Collection > AD FINEM." }))
+      $lines = @($(if (@(Get-Looks).Count -gt 1) { "Open OBS and choose a Scene Collection: " + ((Get-LooksText) -replace '^.*?: ', '') } else { "Open OBS and choose Scene Collection > AD FINEM." }))
       if (-not $script:obsExe) { $lines = @('Install OBS Studio, then run this setup again to add the scenes.') }
       $lines += "Change texts, alerts and sponsors later with ""AD FINEM - Customize overlays"" - on your desktop and in the Start menu (type AD FINEM)."
       $lines += "Your webcam shows the AD FINEM picture until the camera is on."

@@ -1,10 +1,11 @@
 param([switch]$Quiet)
-# Removes the AD FINEM scene collections (AD FINEM / AD FINEM Forever) from OBS and the desktop / Start menu shortcuts.
+# Removes the AD FINEM scene collections (AD FINEM / AD FINEM Monogram / AD FINEM Forever) from OBS and the desktop / Start menu shortcuts.
 # Your kit folder (Documents\AD FINEM Stream Kit) is left alone - delete it yourself if you want.
 $scenes = Join-Path $env:APPDATA 'obs-studio\basic\scenes\AD_FINEM.json'
 $desk = [Environment]::GetFolderPath('Desktop')
 $scenesF = Join-Path $env:APPDATA 'obs-studio\basic\scenes\AD_FINEM_Forever.json'
-$items = @($scenes, $scenesF, (Join-Path $desk 'AD FINEM - Customize overlays.lnk'), (Join-Path $desk 'AD FINEM Stream Kit.lnk'),
+$scenesM = Join-Path $env:APPDATA 'obs-studio\basic\scenes\AD_FINEM_Monogram.json'
+$items = @($scenes, $scenesF, $scenesM, (Join-Path $desk 'AD FINEM - Customize overlays.lnk'), (Join-Path $desk 'AD FINEM Stream Kit.lnk'),
            (Join-Path ([Environment]::GetFolderPath('Programs')) 'AD FINEM')) | Where-Object { Test-Path $_ }
 if (-not $items) { Write-Host 'Nothing to remove.'; return }
 Write-Host 'This will remove:'; $items | ForEach-Object { Write-Host "  $_" }

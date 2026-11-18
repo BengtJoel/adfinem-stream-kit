@@ -3,7 +3,7 @@
   {
    "Actions": {
     "0,0": {
-     "ActionID": "6dc8179b-abe7-466a-a1cd-e43d145c5357",
+     "ActionID": "4007710d-4b29-409d-8966-d26d0be34bdb",
      "LinkedTitle": false,
      "Name": "Scene: Starting Soon",
      "Plugin": {
@@ -74,7 +74,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "1,0": {
-     "ActionID": "6f2f1da8-834b-4286-b1d2-6b6964b7edf6",
+     "ActionID": "4cd5fb25-2d92-419a-96d5-b3f0f73b4455",
      "LinkedTitle": false,
      "Name": "Scene: In-Game",
      "Plugin": {
@@ -145,7 +145,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "2,0": {
-     "ActionID": "a60c25e2-05f9-4d4f-96fa-b4a698c5f4e7",
+     "ActionID": "50db3335-acc0-488c-8fdb-48a7d81d9ef8",
      "LinkedTitle": false,
      "Name": "Scene: BRB",
      "Plugin": {
@@ -216,7 +216,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "3,0": {
-     "ActionID": "6093e170-701f-4f35-a537-28bcf031c65b",
+     "ActionID": "79fb323c-31da-4503-a9e4-1d0a8ba466b2",
      "LinkedTitle": false,
      "Name": "Scene: Ending",
      "Plugin": {
@@ -287,7 +287,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "0,1": {
-     "ActionID": "9d28365d-4da3-4134-b7b9-9d82efa2f7b5",
+     "ActionID": "fb710409-e4b6-4786-8df1-257cd751286a",
      "LinkedTitle": false,
      "Name": "Mute / unmute mic",
      "Plugin": {
@@ -358,7 +358,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "1,1": {
-     "ActionID": "f99cb32e-2d19-4e65-940a-598185fae164",
+     "ActionID": "09390f90-f7f7-4b71-a109-74d4c0b20a80",
      "LinkedTitle": false,
      "Name": "Mute / unmute desktop audio",
      "Plugin": {
@@ -429,7 +429,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "2,1": {
-     "ActionID": "978afb32-30b2-469c-88f2-127d7da0363b",
+     "ActionID": "fe7a0727-ddf6-4f6a-b75a-bc1e30308334",
      "LinkedTitle": false,
      "Name": "Show / hide webcam",
      "Plugin": {
@@ -500,7 +500,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "3,1": {
-     "ActionID": "91a89742-203c-44a3-9462-7104f6caf379",
+     "ActionID": "0ca35443-96b0-463a-9a17-78cd862e5aee",
      "LinkedTitle": false,
      "Name": "Show / hide sponsors",
      "Plugin": {
@@ -571,7 +571,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "2,2": {
-     "ActionID": "86fa999b-3e6b-492f-8fcd-f2cf810cacf2",
+     "ActionID": "4d8df114-8f8a-43e5-8fbc-7649ee69ca0c",
      "LinkedTitle": false,
      "Name": "Music in my headphones on / off",
      "Plugin": {
@@ -642,7 +642,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "4,1": {
-     "ActionID": "649aa3f0-b76b-4500-8ff4-76b736258bcf",
+     "ActionID": "f96dd296-ce29-4c08-806c-4289eb4e6cee",
      "LinkedTitle": false,
      "Name": "Show / hide alerts",
      "Plugin": {
@@ -713,7 +713,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "3,2": {
-     "ActionID": "4876787b-d6b0-42a9-be45-6cbd9df9163c",
+     "ActionID": "d1349747-d056-411c-9ac4-61fd3b203c03",
      "LinkedTitle": false,
      "Name": "Start / stop recording",
      "Plugin": {
@@ -784,7 +784,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "4,2": {
-     "ActionID": "761b883d-d9fb-4620-9efb-701211047bf5",
+     "ActionID": "426f9181-805d-40df-aa6c-c140639b56e0",
      "LinkedTitle": false,
      "Name": "Start / stop stream",
      "Plugin": {
@@ -855,7 +855,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "4,0": {
-     "ActionID": "1cf2b404-0b90-4243-b6da-09dccf366309",
+     "ActionID": "6328c141-a58d-447c-a7be-84f8351f92fd",
      "LinkedTitle": false,
      "Name": "Scene: Ending + outro",
      "Plugin": {
@@ -926,7 +926,7 @@
      "UUID": "com.elgato.streamdeck.system.hotkey"
     },
     "1,2": {
-     "ActionID": "9f3e0119-70e2-474a-88c1-a3ba6263e97d",
+     "ActionID": "4fe10577-f713-42fc-8f45-ab050a50fb1b",
      "LinkedTitle": false,
      "Name": "Customize overlays",
      "Plugin": {
@@ -956,7 +956,7 @@
      "UUID": "com.elgato.streamdeck.system.open"
     },
     "0,2": {
-     "ActionID": "d3af81ef-bd87-4ff3-99b3-e609d0d7b622",
+     "ActionID": "2aeefce6-33c7-4d7a-9906-977da26cfd4b",
      "LinkedTitle": false,
      "Name": "Screenshot",
      "Plugin": {

@@ -163,21 +163,23 @@ def make(dest, edition):
              "monogram": os.path.join(dest, "editions", "monogram", "streamdeck_icons")}
     # a .desktop launcher needs no quoting (the kit path has spaces); the installer writes it before this
     editor_cmd = "gtk-launch adfinem-customize-overlays" if shutil.which("gtk-launch") else f'python3 "{os.path.join(dest, "_system", "editor.py")}"'
-    if edition.startswith("both"):
-        first = "monogram" if edition == "both-monogram" else "retail"
-        pages = [(first, "AD FINEM", "AD FINEM", "AD FINEM Forever"),
-                 ("forever", "AD FINEM Forever", "AD FINEM Forever", "AD FINEM")]
-    else:
-        pages = [(edition, "AD FINEM", "AD FINEM", None)]
-        for d in devs:   # switched away from "both": remove the second page
-            shutil.rmtree(os.path.join(cfg, "images", d, "AD FINEM Forever"), ignore_errors=True)
-            p = os.path.join(cfg, "profiles", d, "AD FINEM Forever.json")
+    edition = {"both": "retail+forever", "both-monogram": "monogram+forever"}.get(edition, edition)
+    looks = [l for l in ("retail", "monogram", "forever") if l in edition.split("+")] or ["retail"]
+    names = ["AD FINEM"] + [{"monogram": "AD FINEM Monogram", "forever": "AD FINEM Forever"}[l] for l in looks[1:]]
+    # one profile per look; the switch key goes round to the next one (the last back to the first)
+    pages = [(l, names[i], names[i], names[(i + 1) % len(looks)] if len(looks) > 1 else None) for i, l in enumerate(looks)]
+    for d in devs:   # looks that are not picked any more: remove their profile
+        for extra in ("AD FINEM Monogram", "AD FINEM Forever"):
+            if extra in names:
+                continue
+            shutil.rmtree(os.path.join(cfg, "images", d, extra), ignore_errors=True)
+            p = os.path.join(cfg, "profiles", d, extra + ".json")
             if os.path.exists(p):
                 os.remove(p)
     try:
         for d in devs:
             for look, profile, collection, switch_to in pages:
-                other = icons["forever" if look != "forever" else pages[0][0]]
+                other = icons[pages[(pages.index((look, profile, collection, switch_to)) + 1) % len(pages)][0]]
                 write_profile(cfg, d, profile, layout(collection, editor_cmd, switch_to), icons[look], other)
     finally:
         if was_running:

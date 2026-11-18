@@ -3,6 +3,8 @@
 <title>AD FINEM - Customize overlays</title>
 <link rel="stylesheet" href="../overlays/af.css">
 <script src="../_system/edition.js" onerror="window.AF_EDITION = null"></script>
+<script src="../settings-monogram.js" onerror="window.AF_SETTINGS = undefined"></script>
+<script>window.AF_SETTINGS_MONOGRAM = window.AF_SETTINGS || null; window.AF_SETTINGS = undefined;</script>
 <script src="../settings-forever.js" onerror="window.AF_SETTINGS = undefined"></script>
 <script>window.AF_SETTINGS_FOREVER = window.AF_SETTINGS || null; window.AF_SETTINGS = undefined;</script>
 <script src="../settings.js"></script>
@@ -39,6 +41,7 @@
   .stage { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; border: 1px solid rgba(203,213,235,.1);
     background: #000 url("../overlays/img/preview_bg.jpg") center/cover; }
   .stage.forever { background-image: url("../editions/forever/overlays/img/preview_bg.jpg"); }
+  .stage.monogram { background-image: url("../editions/monogram/overlays/img/preview_bg.jpg"); }
   .stage.game { background: radial-gradient(ellipse at 30% 40%, #3a4a3a, #1d241f 60%, #0e120f); }
   .stage iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; background: transparent; }
   .pv-title { font: 600 12px/1 "Archivo", sans-serif; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; }
@@ -73,6 +76,7 @@
     color: var(--muted); background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
   .looks button.on[data-look="retail"] { color: #0A0C11; background: linear-gradient(135deg, #E8785A, #F0B05C); }
   .looks button.on[data-look="forever"] { color: #0A0C11; background: linear-gradient(135deg, #D9A441, #F6D98F); }
+  .looks button.on[data-look="monogram"] { color: #0B0D12; background: #E8785A; }
   .looks + .hint { margin: -10px 0 18px; }
   .savedpath { color: var(--muted); font-size: 12px; margin-top: 8px; word-break: break-all; }
 </style></head>
@@ -85,8 +89,8 @@
     <b>AD FINEM - Customize overlays</b> shortcut on your desktop. Then Save goes straight to the right place.
     Opened like this, Save can only download the file.</div>
   <div class="warn" id="upd" style="border-color:rgba(240,176,92,.55);background:rgba(240,176,92,.10)"></div>
-  <div class="looks" id="looks"><button data-look="retail" class="on">Retail</button><button data-look="forever">WoW Forever</button></div>
-  <div class="hint" id="lookhint" style="display:none">Two scene collections in OBS - each has its own texts, pill and sponsors. Save stores both.</div>
+  <div class="looks" id="looks"><button data-look="retail" class="on">Retail</button><button data-look="monogram">Monogram</button><button data-look="forever">WoW Forever</button></div>
+  <div class="hint" id="lookhint" style="display:none">One scene collection per look in OBS - each has its own texts, pill and sponsors. Save stores them all.</div>
   <div class="tabs" id="tabs"></div>
 
   <fieldset data-tab="general" data-preview="starting">
@@ -262,15 +266,23 @@ function withDefaults(o) {
   return o;
 }
 withDefaults(window.AF_SETTINGS); withDefaults(window.AF_SETTINGS_FOREVER);
-// Retail + WoW Forever installed side by side: each look has its own settings file
-const BOTH = /^both/.test(window.AF_EDITION || "") && !!window.AF_SETTINGS_FOREVER;
-if (/monogram/.test(window.AF_EDITION || "")) document.querySelector('#looks [data-look="retail"]').textContent = "Monogram";
-const LOOKS = { retail: { file: "settings", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS || {})) } };
-if (BOTH) LOOKS.forever = { file: "settings-forever", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS_FOREVER)) };
+withDefaults(window.AF_SETTINGS_MONOGRAM);
+// several looks installed side by side (e.g. retail+monogram+forever): the first is the kit itself (settings.js),
+// every other look has its own settings file and overlay copies (settings-monogram.js, starting-monogram.html ...)
+const LOOK_ORDER = ["retail", "monogram", "forever"];
+const ED = ({ both: "retail+forever", "both-monogram": "monogram+forever" })[window.AF_EDITION] || window.AF_EDITION || "retail";
+const EXTRA_SETTINGS = { monogram: window.AF_SETTINGS_MONOGRAM, forever: window.AF_SETTINGS_FOREVER };
+const PICKED = LOOK_ORDER.filter(l => ED.split(/[+, ]+/).includes(l));
+if (!PICKED.length) PICKED.push("retail");
+const FIRST = PICKED[0];
+const LOOKS = { [FIRST]: { file: "settings", suffix: "", orig: JSON.parse(JSON.stringify(window.AF_SETTINGS || {})) } };
+for (const l of PICKED.slice(1)) if (EXTRA_SETTINGS[l]) LOOKS[l] = { file: "settings-" + l, suffix: "-" + l, orig: JSON.parse(JSON.stringify(EXTRA_SETTINGS[l])) };
+const BOTH = Object.keys(LOOKS).length > 1;
 for (const k in LOOKS) LOOKS[k].cur = JSON.parse(JSON.stringify(LOOKS[k].orig));
-let look = "retail";
-let ORIGINAL = LOOKS.retail.orig;
-let S = LOOKS.retail.cur;
+document.querySelectorAll("#looks button").forEach(b => { if (!LOOKS[b.dataset.look]) b.remove(); else if (b.dataset.look === FIRST) b.classList.add("on"); else b.classList.remove("on"); });
+let look = FIRST;
+let ORIGINAL = LOOKS[FIRST].orig;
+let S = LOOKS[FIRST].cur;
 const TABS = [["general", "General"], ["starting", "Starting"], ["brb", "BRB"], ["ending", "Ending"], ["in-game", "In-game"], ["sponsors", "Sponsors"], ["alerts", "Alerts"]];
 const sets = [...document.querySelectorAll("fieldset")];
 let current = "general";
@@ -306,11 +318,12 @@ function preview() {
     const fs = sets.find(f => f.dataset.tab === current);
     const page = fs.dataset.preview;
     document.getElementById("stage").classList.toggle("game", page === "ingame" || page === "alerts" || page === "sponsors");
-    document.getElementById("stage").classList.toggle("forever", look === "forever");
+    // the first look's background is the kit's own; another look shows its own preview picture
+    for (const l of ["forever", "monogram"]) document.getElementById("stage").classList.toggle(l, look === l && look !== FIRST);
     document.querySelectorAll("[data-mode]").forEach(d => d.style.display = ((S.sponsors || {}).mode === d.dataset.mode) ? "" : "none");
     document.querySelectorAll("[data-show]").forEach(d => d.classList.toggle("on", d.dataset.show === ((S.alerts || {}).mode || "twitch")));
     document.getElementById("pvtitle").textContent = "Preview - " + ({ starting: "Starting Soon", brb: "Be Right Back", ending: "Ending", ingame: "In-game", alerts: "Alerts", sponsors: "Sponsors" })[page];
-    document.getElementById("pv").src = `../overlays/${page}${look === "forever" ? "-forever" : ""}.html?t=${Date.now()}#s=${encodeURIComponent(encode(S))}${page === "alerts" ? "&demo=" + lastTest : ""}`;
+    document.getElementById("pv").src = `../overlays/${page}${LOOKS[look].suffix}.html?t=${Date.now()}#s=${encodeURIComponent(encode(S))}${page === "alerts" ? "&demo=" + lastTest : ""}`;
   }, 250);
 }
 
@@ -353,7 +366,7 @@ async function save() {
     try {
       LOOKS[look].cur = S;
       const paths = [];
-      for (const k of Object.keys(LOOKS)) {     // Retail + Forever: save both looks
+      for (const k of Object.keys(LOOKS)) {     // several looks: save them all
         const r = await fetch("/api/save" + (LOOKS[k].file === "settings" ? "" : "?file=" + LOOKS[k].file),
           { method: "POST", headers: { "X-AF-Token": TOKEN, "Content-Type": "text/javascript" }, body: settingsFile(LOOKS[k].cur) });
         const j = await r.json();
@@ -361,7 +374,7 @@ async function save() {
         LOOKS[k].orig = JSON.parse(JSON.stringify(LOOKS[k].cur)); paths.push(j.path);
       }
       ORIGINAL = LOOKS[look].orig;
-      toast(`<b>Saved${BOTH ? " - Retail and WoW Forever" : ""}.</b> OBS updates by itself within a few seconds.<div class="savedpath">${paths.join("<br>")}</div>`);
+      toast(`<b>Saved${BOTH ? " - " + Object.keys(LOOKS).map(k => ({ retail: "Retail", monogram: "Monogram", forever: "WoW Forever" })[k]).join(", ") : ""}.</b> OBS updates by itself within a few seconds.<div class="savedpath">${paths.join("<br>")}</div>`);
     } catch (e) {
       toast("<b>Couldn't save.</b> Is the editor helper still running? Start <b>Customize overlays</b> again.", 12000);
     }

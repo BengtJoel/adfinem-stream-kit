@@ -1,12 +1,14 @@
 # Makes "AD FINEM.streamDeckProfile" in the kit folder from one of the ready-made templates.
 #   -Dest     the kit folder (Documents\AD FINEM Stream Kit)
-#   -Edition  retail | monogram | forever | both | both-monogram
+#   -Edition  one or more looks joined with '+' (retail, monogram, forever), e.g. retail+monogram+forever; 'both' = retail+forever
 # Uses the version where the keys show what OBS is doing (mic muted, scene on screen, live...) when
 # Elgato's free "OBS Studio" plugin is installed in the Stream Deck app, otherwise plain key commands.
 # Writes one line: "obs" or "keys" (or "none" if there is no template).
 param([Parameter(Mandatory)][string]$Dest, [string]$Edition = 'retail')
 $ErrorActionPreference = 'Stop'
-$Edition = $Edition.ToLower(); $Edition = $(if ($Edition -in 'forever', 'monogram', 'both', 'both-monogram') { $Edition } else { 'retail' })
+$e = $Edition.ToLower().Trim(); if ($e -eq 'both') { $e = 'retail+forever' } elseif ($e -eq 'both-monogram') { $e = 'monogram+forever' }
+$set = @($e -split '[+, ]+'); $l = @('retail', 'monogram', 'forever' | Where-Object { $_ -in $set }); if (-not $l.Count) { $l = @('retail') }
+$Edition = $l -join '+'
 $plugin = Join-Path $env:APPDATA 'Elgato\StreamDeck\Plugins\com.elgato.obsstudio.sdPlugin'
 $mode = $(if (Test-Path $plugin) { 'obs' } else { 'keys' })
 $tpl = Join-Path $Dest "_system\streamdeck\templates\$Edition-$mode"

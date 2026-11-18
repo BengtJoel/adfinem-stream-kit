@@ -21,7 +21,7 @@
   // the Monogram look has its own animated scene (editions/monogram/overlays/mono-screen.js)
   if (getComputedStyle(document.documentElement).getPropertyValue("--edition").trim() === "monogram") {
     window.AF_MONO = C;
-    const m = document.createElement("script"); m.src = "mono-screen.js"; document.body.appendChild(m);
+    const m = document.createElement("script"); m.src = (window.AF_LOOK_DIR || "") + "mono-screen.js"; document.body.appendChild(m);
     return;
   }
 

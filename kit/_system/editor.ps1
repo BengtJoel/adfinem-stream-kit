@@ -125,8 +125,8 @@ while (-not $stop) {
       if ($req.Headers['x-af-token'] -ne $token) { Send $stream 403 'application/json' (Json @{ ok = $false; error = 'not allowed' }); continue }
       $text = [Text.Encoding]::UTF8.GetString($req.Body)
       if ($text -notmatch 'window\.AF_SETTINGS\s*=' -or $text.Length -gt 500000) { Send $stream 400 'application/json' (Json @{ ok = $false; error = 'not a settings file' }); continue }
-      # ?file=settings-forever = the WoW Forever collection's own settings (Retail + Forever installed)
-      $sp = $(if ($query -match '(?:^|&)file=settings-forever(?:&|$)') { Join-Path $root 'settings-forever.js' } else { $settingsPath })
+      # ?file=settings-forever / settings-monogram = that look's own scene collection settings (several looks installed)
+      $sp = $(if ($query -match '(?:^|&)file=(settings-(?:forever|monogram))(?:&|$)') { Join-Path $root ($Matches[1] + '.js') } else { $settingsPath })
       if (Test-Path $sp) {
         $bk = Join-Path $root '_system\backup'
         New-Item -ItemType Directory -Force -Path $bk | Out-Null

@@ -116,9 +116,10 @@ class Handler(BaseHTTPRequestHandler):
             text = self.rfile.read(n).decode("utf-8", "replace")
             if not re.search(r"window\.AF_SETTINGS\s*=", text):
                 return self.json(400, {"ok": False, "error": "not a settings file"})
-            # ?file=settings-forever = the WoW Forever collection's own settings (Retail + Forever installed)
+            # ?file=settings-forever / settings-monogram = that look's own scene collection settings (several looks installed)
             q = parse_qs(urlsplit(self.path).query)
-            sp = os.path.join(ROOT, "settings-forever.js") if q.get("file", [""])[0] == "settings-forever" else SETTINGS
+            fq = q.get("file", [""])[0]
+            sp = os.path.join(ROOT, fq + ".js") if fq in ("settings-forever", "settings-monogram") else SETTINGS
             if os.path.exists(sp):
                 bk = os.path.join(ROOT, "_system", "backup")
                 os.makedirs(bk, exist_ok=True)
