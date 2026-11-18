@@ -111,6 +111,13 @@ function Set-Devices([string]$json) {
       Say "    Webcam: $Camera" 'Green'
     }
   }
+  # the mic is always mono (OBS "Mono" in Advanced Audio Properties = source flag 2): a mic is one channel,
+  # in stereo it often sits in the left ear only
+  if ($c.AuxAudioDevice1) {
+    $fl = 0; try { $fl = [int64]$c.AuxAudioDevice1.flags } catch {}
+    Set-Prop $c.AuxAudioDevice1 'flags' ($fl -bor 2)
+    Say '    Mic: set to mono.' 'Green'
+  }
   if ($Mic -or $MicFilters) {
     $aux = $c.AuxAudioDevice1
     if ($aux) {

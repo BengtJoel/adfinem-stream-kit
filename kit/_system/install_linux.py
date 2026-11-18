@@ -495,6 +495,9 @@ def main():
             out["AuxAudioDevice1"]["filters"] = kit_filters()
             say("    Mic: noise suppression, noise gate, compressor and limiter added.", GREEN)
         out = sync_placeholder(out)
+        if out.get("AuxAudioDevice1"):   # the mic is always mono (OBS "Mono" = source flag 2)
+            out["AuxAudioDevice1"]["flags"] = int(out["AuxAudioDevice1"].get("flags") or 0) | 2
+            say("    Mic: set to mono.", GREEN)
         with open(target, "w", encoding="utf-8") as f:
             json.dump(out, f, indent=2, ensure_ascii=False)
         say(f"    Written: {target}", GREEN)

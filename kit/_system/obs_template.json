@@ -1289,7 +1289,7 @@
     },
     "mixers": 255,
     "sync": 0,
-    "flags": 0,
+    "flags": 2,
     "volume": 1.0,
     "balance": 0.5,
     "enabled": true,
