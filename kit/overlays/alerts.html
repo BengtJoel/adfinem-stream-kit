@@ -38,6 +38,10 @@
 <script>
 (function () {
   const A = AF_GET("alerts") || {};
+  const MONO = getComputedStyle(document.documentElement).getPropertyValue("--edition").trim() === "monogram";
+  if (MONO) {
+    const m = document.createElement("script"); m.src = "mono-alert.js"; document.head.appendChild(m);
+  }
   const PREVIEW = /[#&]s=/.test(location.hash);           // shown inside the editor
   const mode = A.mode || "twitch";
   const stage = document.getElementById("stage");
@@ -82,6 +86,13 @@
     const ev = queue.shift();
     if (!ev) { busy = false; return; }
     busy = true;
+    if (MONO && !window.AF_MONO_ALERT) { queue.unshift(ev); setTimeout(next, 100); return; }   // still loading
+    if (window.AF_MONO_ALERT) {   // Monogram look: its own alert panel (editions/monogram/overlays/mono-alert.js)
+      if (A.sound !== false) { const s = new Audio("../videos/alert_chime.ogg"); s.volume = volume; s.play().catch(() => {}); }
+      AF_MONO_ALERT(stage, { name: String(ev.name || "Anonymous"), what: fill(T[ev.kind], ev), msg: ev.msg ? AF_ESC(ev.msg) : "" },
+                    seconds, pos, () => setTimeout(next, 400));
+      return;
+    }
     const el = document.createElement("div");
     el.className = "alert in " + pos;
     el.innerHTML = `<video src="../videos/alert_1x1_alpha.webm" autoplay playsinline></video>

@@ -299,6 +299,7 @@ def make_forever_overlays(dest):
         t = t.replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
         t = t.replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
         t = t.replace('"../videos/alert_1x1_alpha.webm"', '"../editions/forever/videos/alert_1x1_alpha.webm"')
+        t = t.replace('"../videos/alert_chime.ogg"', '"../editions/forever/videos/alert_chime.ogg"')   # its own alert sound
         with open(os.path.join(ov, n + "-forever.html"), "w", encoding="utf-8") as f:
             f.write(t)
 

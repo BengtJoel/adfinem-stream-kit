@@ -301,6 +301,7 @@ function New-ForeverOverlays {
     $t = $t.Replace('"img/adfinem-emblem-gradient.svg"', '"../editions/forever/overlays/img/adfinem-emblem-gradient.svg"')
     $t = $t.Replace('"img/webcam_placeholder.jpg"', '"../editions/forever/overlays/img/webcam_placeholder.jpg"')
     $t = $t.Replace('"../videos/alert_1x1_alpha.webm"', '"../editions/forever/videos/alert_1x1_alpha.webm"')
+    $t = $t.Replace('"../videos/alert_chime.ogg"', '"../editions/forever/videos/alert_chime.ogg"')   # its own alert sound (the kit's may be Monogram's)
     [IO.File]::WriteAllText((Join-Path $ov "$n-forever.html"), $t, (New-Object Text.UTF8Encoding $false))
   }
 }
