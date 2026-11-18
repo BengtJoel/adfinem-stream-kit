@@ -14,7 +14,7 @@
   #mo .micro{font-weight:700;font-stretch:125%;font-size:12px;letter-spacing:.32em;color:#3E4556;white-space:nowrap}
   #mo .corner{width:44px;height:44px;border-color:#3A4152;border-style:solid;border-width:0}
   #mo .dg{display:block;height:96px;line-height:96px}
-  #mo-grain{mix-blend-mode:overlay;opacity:.22}`;
+`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
   const esc = s => String(s == null ? "" : s);
   const title = (C.title || []).map(esc).join(" ").trim();
@@ -62,7 +62,6 @@
   <div id="s2" class="a" style="top:-300px;height:1700px;width:30px;background:#E8785A"></div>
   <div id="s3" class="a" style="top:-300px;height:1700px;width:8px;background:#F2F2F0"></div>
   <div class="a" style="inset:0;background:radial-gradient(ellipse 78% 78% at 55% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)"></div>
-  <canvas id="mo-grain" class="a" width="960" height="540" style="left:0;top:0;width:1920px;height:1080px"></canvas>
   <div id="fl" class="a" style="inset:0;background:#FFF;opacity:0"></div>`;
   document.body.appendChild(root);
   const $ = id => document.getElementById(id), S = (id, k, v) => { $(id).style[k] = v; };
@@ -91,8 +90,7 @@
    ${[0, 90, 180, 270].map(a => `<line x1="${R0}" y1="${R0 - R0 * 1.30}" x2="${R0}" y2="${R0 - R0 * 1.40}" stroke="#E8785A" stroke-width="2" transform="rotate(${a} ${R0} ${R0})"/>`).join("")}`;
   let sd = 7; const RN = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   const ST = [...Array(80)].map(() => ({ x: RN() * W, y: RN() * 1400, l: 40 + RN() * 240, k: 1 + Math.floor(RN() * 3), w: RN() < .15 ? 2 : 1, c: RN() < .22, b: RN() < .3 }));
-  const sc = $("stk").getContext("2d"), gc = $("mo-grain").getContext("2d");
-  const tiles = [...Array(6)].map(() => { const im = gc.createImageData(960, 540); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } return im; });
+  const sc = $("stk").getContext("2d");
 
   // ---- countdown
   let end = null;
@@ -172,7 +170,6 @@
     let f = 0; if (t > E0 + .85 && t < E0 + .92) f = .2; if (pl > 0 && dp > .08 && dp < .12) f = .045; S("fl", "opacity", f);
     let shk = 0; for (const e of hit) shk = Math.max(shk, t > e ? Math.exp(-(t - e) * 8) : 0);
     root.style.transform = `translate(${Math.sin(fr * 2.3) * 7 * shk}px,${Math.cos(fr * 1.7) * 7 * shk}px) scale(${1.012 + .008 * Math.sin(t * .2)})`;
-    gc.putImageData(tiles[fr % 6], 0, 0);
     requestAnimationFrame(frame);
   }
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(frame));
