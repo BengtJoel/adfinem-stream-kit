@@ -1,5 +1,5 @@
 /* AD FINEM - MONOGRAM look: alert panel (same as the alert in the brand video).
-   alerts.html calls AF_MONO_ALERT(stage, {name, what, msg}, seconds, position, done). */
+   alerts.html calls AF_MONO_ALERT(stage, {name, what, msg}, seconds, position, done). Always top-left. */
 (function () {
   const st = document.createElement("style");
   st.textContent = `
@@ -24,7 +24,8 @@
   const spring = x => x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.exp(-6 * x) * Math.cos(9 * x);
 
   window.AF_MONO_ALERT = function (stage, ev, seconds, pos, done) {
-    const el = document.createElement("div"); el.className = "mal " + (pos === "top" ? "top" : "center");
+    pos = "top";   // the Monogram alert always sits top-left (Retail / Forever keep their own position setting)
+    const el = document.createElement("div"); el.className = "mal top";
     el.innerHTML = `<div class="pn"></div><div class="em"></div>
       <div class="tx"><div class="lb">${ev.what}</div><div class="nm">${[...ev.name].map(c => `<span>${c === " " ? "&nbsp;" : c.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>`).join("")}</div></div>
       ${ev.msg ? `<div class="ms">${ev.msg}</div>` : ""}<div class="tb"></div><div class="sl"></div><div class="bk"></div>`;
