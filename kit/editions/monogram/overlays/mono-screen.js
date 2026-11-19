@@ -9,7 +9,7 @@
   #mo{position:absolute;inset:0;overflow:hidden;font-family:"AFM",sans-serif;color:#F2F2F0}
   #mo .a{position:absolute}
   #mo .em{-webkit-mask:url(img/adfinem-emblem-coral.svg) center/contain no-repeat;mask:url(img/adfinem-emblem-coral.svg) center/contain no-repeat}
-  #mo .band{white-space:nowrap;font-weight:900;font-stretch:62%;font-size:300px;line-height:1;color:transparent;-webkit-text-stroke:2px #232A3A;filter:blur(1.2px)}
+  #mo .band{left:0;transform-origin:0 50%;white-space:nowrap;font-weight:900;font-stretch:62%;font-size:300px;line-height:1;color:transparent;-webkit-text-stroke:2px #232A3A;filter:blur(1.2px)}
   #mo .hud{font-weight:700;font-stretch:125%;font-size:15px;letter-spacing:.38em;color:#5B6273;white-space:nowrap}
   #mo .micro{font-weight:700;font-stretch:125%;font-size:12px;letter-spacing:.32em;color:#3E4556;white-space:nowrap}
   #mo .corner{width:44px;height:44px;border-color:#3A4152;border-style:solid;border-width:0}
@@ -82,6 +82,7 @@
   $("left").innerHTML = left.join("");
   const WM = "AD FINEM"; $("wm").innerHTML = [...WM].map(c => `<span style="display:inline-block">${c === " " ? "&nbsp;" : c}</span>`).join("");
   const L = [...$("wm").children];
+  let UW0 = 0; const bandUnit = () => UW0 || (UW0 = $("b1").offsetWidth / 6) || 2700;
   const UNIT = "AD FINEM&nbsp;&nbsp;·&nbsp;&nbsp;TO THE END&nbsp;&nbsp;·&nbsp;&nbsp;"; $("b1").innerHTML = UNIT.repeat(6); $("b2").innerHTML = UNIT.repeat(6);
   let s = ""; for (let i = 0; i <= 104; i++) { const x = i * 25, m = i % 6 === 0; s += `<line x1="${x}" y1="${m ? 2 : 9}" x2="${x}" y2="17" stroke="${m ? "#E8785A" : "#5B6273"}" stroke-width="2"/>`; } $("rusv").insertAdjacentHTML("beforeend", s);
   s = ""; for (let i = 0; i <= 96; i++) { const y = i * 25, m = i % 4 === 0; s += `<line x1="${m ? 0 : 8}" y1="${y}" x2="18" y2="${y}" stroke="${m ? "#E8785A" : "#3E4556"}" stroke-width="2"/>`; } $("rsv").innerHTML = s;
@@ -126,8 +127,9 @@
     const mt = `translate(${(1 - mi) * -140}px,${drift}px) scale(${1.25 - .25 * mi}) rotate(${(1 - mi) * -7}deg)`;
     S("mono", "transform", mt); S("monoE", "transform", mt); S("mono", "opacity", mi); S("monoE", "opacity", mi);
     S("monoE", "backgroundPosition", `${130 - ((t * .08) % 1) * 160}% 0`);
-    const UW = 4148, bi = eo(P(t, O + .3, O + 1.6));
-    S("b1", "transform", `translateX(${-UW * .4 - ((t * 38) % UW)}px) rotate(-6deg)`); S("b2", "transform", `translateX(${-UW * 1.7 + ((t * 38) % UW)}px) rotate(-6deg)`);
+    // the bands slide along their own slant, one whole text unit at a time, so they never jump
+    const UW = bandUnit(), bi = eo(P(t, O + .3, O + 1.6));
+    S("b1", "transform", `rotate(-6deg) translateX(${-UW * .4 - ((t * 38) % UW)}px)`); S("b2", "transform", `rotate(-6deg) translateX(${-UW * 1.7 + ((t * 38) % UW)}px)`);
     S("b1", "opacity", bi * .9); S("b2", "opacity", bi * .9);
     const hit = [E0 + .85, pl].filter(x => x > 0);
     let boost = 0; for (const e of hit) boost = Math.max(boost, Math.exp(-(((t - e - .35) / .28) ** 2)));
